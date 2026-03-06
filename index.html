@@ -3,737 +3,662 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-<title>Stick Life 2D</title>
+<title>Stick Life</title>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-body { background: #0a0a0a; color: #ddd; font-family: 'Courier New', monospace; overflow: hidden; height: 100vh; height: 100dvh; touch-action: none; user-select: none; -webkit-user-select: none; }
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:#12121f;color:#ddd;font-family:'Courier New',monospace;overflow:hidden;height:100vh;height:100dvh;user-select:none;-webkit-user-select:none}
+#root{display:flex;flex-direction:column;height:100vh;height:100dvh}
 
-#root { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+/* HEADER */
+.hdr{display:flex;align-items:center;padding:6px 12px;background:#0e0e1a;border-bottom:1px solid #2a2a3a;gap:8px;z-index:10;flex-shrink:0}
+.hdr-day{color:#aaa;font-size:.8em;font-weight:bold;white-space:nowrap}
+.hp-bar-wrap{flex:1;height:14px;background:#1a1a2e;border-radius:7px;overflow:hidden;position:relative;min-width:60px}
+.hp-bar-fill{height:100%;border-radius:7px;transition:width .4s,background .4s}
+.hp-bar-text{position:absolute;top:0;left:0;right:0;text-align:center;font-size:.6em;line-height:14px;color:#fff;font-weight:bold;text-shadow:0 0 3px #000}
+.hdr-cash{color:#4ecca3;font-size:.85em;font-weight:bold;white-space:nowrap}
 
-/* HUD */
-.hud { background: #111; border-bottom: 2px solid #333; padding: 6px 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; z-index: 10; min-height: 36px; }
-.hud-title { color: #e94560; font-weight: bold; font-size: 1em; }
-.hud-stat { font-size: 0.7em; padding: 2px 6px; background: #1a1a2e; border-radius: 3px; white-space: nowrap; }
-.hud-stat .l { color: #666; }
-.hud-stat .v { font-weight: bold; }
-.v-hp { color: #e94560; } .v-cash { color: #4ecca3; } .v-str { color: #fc5185; }
-.v-int { color: #6c63ff; } .v-chm { color: #f9a826; } .v-karma { color: #a8e6cf; } .v-day { color: #ddd; }
-.hud-slots { display: flex; gap: 3px; align-items: center; }
-.hud-pip { width: 10px; height: 10px; border-radius: 50%; border: 2px solid #555; }
-.hud-pip.used { background: #e94560; border-color: #e94560; }
-.hud-pip.free { background: #4ecca3; border-color: #4ecca3; }
+/* STATS RIBBON */
+.ribbon{display:flex;align-items:center;justify-content:center;gap:6px;padding:5px 8px;background:#14142a;border-bottom:1px solid #222;flex-shrink:0;flex-wrap:wrap}
+.pill{font-size:.68em;padding:2px 7px;border-radius:10px;background:#1a1a2e;display:flex;gap:3px;align-items:center;transition:transform .2s}
+.pill.flash-up{animation:flashUp .5s}
+.pill.flash-down{animation:flashDown .5s}
+@keyframes flashUp{0%,100%{background:#1a1a2e}50%{background:#1a4a2e;transform:scale(1.15)}}
+@keyframes flashDown{0%,100%{background:#1a1a2e}50%{background:#4a1a1e;transform:scale(1.15)}}
+.pill .pl{color:#666}.pill .pv{font-weight:bold}
+.pv-str{color:#fc5185}.pv-int{color:#6c63ff}.pv-chm{color:#f9a826}.pv-karma{color:#a8e6cf}
+.slots-wrap{display:flex;gap:3px;align-items:center;margin-left:4px}
+.slot-dot{width:10px;height:10px;border-radius:50%;border:2px solid #555;transition:background .3s}
+.slot-dot.used{background:#e94560;border-color:#e94560}
+.slot-dot.free{background:#4ecca3;border-color:#4ecca3}
+.tod-label{font-size:.6em;color:#555;margin-left:2px}
 
-/* Layout */
-.game-area { flex: 1; display: flex; position: relative; overflow: hidden; }
-canvas { display: block; }
+/* MAIN CONTENT */
+.main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 12px 10px;transition:background .8s}
+.main.morning{background:linear-gradient(180deg,#1a1a2e 0%,#1e2040 100%)}
+.main.midday{background:linear-gradient(180deg,#1a1a2e 0%,#20233a 100%)}
+.main.afternoon{background:linear-gradient(180deg,#18182a 0%,#1c1c30 100%)}
+.main.evening{background:linear-gradient(180deg,#12121f 0%,#151528 100%)}
+.main.night{background:linear-gradient(180deg,#0a0a14 0%,#0e0e1a 100%)}
 
-/* Side panel - desktop */
-.side-panel { width: 300px; background: #111; border-left: 2px solid #333; display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; }
-.side-panel h3 { color: #e94560; padding: 8px 10px 5px; font-size: 0.9em; border-bottom: 1px solid #222; }
-.side-panel .desc { color: #666; font-size: 0.7em; padding: 3px 10px 6px; }
-.action-list { flex: 1; overflow-y: auto; padding: 4px; -webkit-overflow-scrolling: touch; }
+.loc-title{color:#e94560;font-size:1em;font-weight:bold;margin-bottom:4px}
+.loc-desc{color:#555;font-size:.72em;margin-bottom:10px}
 
-.act-btn { display: block; width: calc(100% - 8px); margin: 4px; padding: 10px; background: #0f3460; border: 1px solid #333; color: #ddd; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 0.8em; text-align: left; transition: background 0.15s; }
-.act-btn:active { background: #e94560; }
-.act-btn:disabled { opacity: 0.35; cursor: not-allowed; background: #0f3460; }
-.act-btn .sub { color: #888; font-size: 0.85em; }
+.act-card{background:#1a1a2e;border:1px solid #2a2a3a;border-radius:8px;padding:12px;margin-bottom:8px;cursor:pointer;transition:border-color .15s,opacity .15s;position:relative}
+.act-card:active{border-color:#e94560}
+.act-card.disabled{opacity:.35;pointer-events:none}
+.act-card .ac-name{color:#ddd;font-size:.85em;font-weight:bold;margin-bottom:2px}
+.act-card .ac-hint{color:#888;font-size:.7em}
+.act-card .ac-cost{position:absolute;top:12px;right:12px;font-size:.7em;color:#4ecca3}
+.act-card .ac-req{color:#e94560;font-size:.65em;margin-top:2px}
 
-.log-area { height: 80px; overflow-y: auto; border-top: 1px solid #333; padding: 4px 8px; background: #0a0a12; -webkit-overflow-scrolling: touch; }
-.log-entry { font-size: 0.68em; padding: 1px 0; color: #777; }
-.log-entry.good { color: #4ecca3; } .log-entry.bad { color: #e94560; } .log-entry.event { color: #f9a826; }
+.job-card{background:#1a1a2e;border:1px solid #222;border-radius:6px;padding:8px 10px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;font-size:.75em;cursor:pointer;transition:border-color .15s}
+.job-card:active{border-color:#4ecca3}
+.job-card.locked{opacity:.3;pointer-events:none}
+.job-card.current{border-color:#4ecca3;background:#0f2a3a}
+.job-card .jname{color:#ddd}.job-card .jpay{color:#4ecca3}.job-card .jreq{color:#666;font-size:.9em}
 
-/* Modals */
-.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 16px; }
-.modal { background: #1a1a2e; border: 2px solid #e94560; border-radius: 10px; padding: 18px; max-width: 460px; width: 100%; max-height: 90vh; overflow-y: auto; }
-.modal h2 { color: #e94560; margin-bottom: 8px; font-size: 1em; }
-.modal p { margin-bottom: 8px; font-size: 0.82em; line-height: 1.4; }
-.modal-btn { display: block; width: 100%; margin: 6px 0; padding: 12px; background: #0f3460; border: 1px solid #444; color: #ddd; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 0.85em; text-align: left; }
-.modal-btn:active { background: #e94560; }
-.modal-btn:disabled { opacity: 0.35; background: #0f3460; }
+.shop-card{background:#1a1a2e;border:1px solid #222;border-radius:6px;padding:10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:border-color .15s}
+.shop-card:active{border-color:#f9a826}
+.shop-card.disabled{opacity:.3;pointer-events:none}
+.shop-card .sname{color:#ddd;font-size:.8em;font-weight:bold}
+.shop-card .sdesc{color:#666;font-size:.68em}
+.shop-card .scost{color:#f9a826;font-size:.8em;font-weight:bold;white-space:nowrap;margin-left:8px}
 
-.summary { text-align: center; }
-.summary h2 { font-size: 1.3em; margin-bottom: 10px; }
-.summary .fs { font-size: 0.9em; margin: 4px 0; }
-.summary .alignment { font-size: 1em; color: #f9a826; margin: 8px 0; }
+.inv-tag{display:inline-block;background:#0f3460;padding:2px 7px;border-radius:10px;font-size:.65em;margin:2px}
 
-.end-day-btn { display: block; width: calc(100% - 8px); margin: 4px; padding: 10px; background: transparent; border: 1px solid #f9a826; color: #f9a826; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 0.8em; }
-.end-day-btn:active { background: #f9a82633; }
+/* BOTTOM NAV */
+.bnav{display:flex;background:#0e0e1a;border-top:1px solid #2a2a3a;flex-shrink:0;z-index:10}
+.bnav-btn{flex:1;padding:8px 0 6px;text-align:center;cursor:pointer;transition:background .15s;border:none;background:transparent;color:#888;font-family:inherit;font-size:.55em}
+.bnav-btn:active,.bnav-btn.active{background:#1a1a2e;color:#e94560}
+.bnav-btn .bnav-icon{font-size:1.6em;display:block;margin-bottom:1px}
 
-.job-row { display: flex; justify-content: space-between; padding: 4px 10px; font-size: 0.7em; border-bottom: 1px solid #1a1a1a; }
-.job-row.locked { opacity: 0.3; } .job-row.active { background: #0f3460; }
-.job-row .jn { color: #ddd; } .job-row .jr { color: #666; } .job-row .jp { color: #4ecca3; }
+/* LOG DRAWER */
+.log-toggle{text-align:center;padding:3px;background:#0e0e1a;border-top:1px solid #222;cursor:pointer;font-size:.6em;color:#555;flex-shrink:0}
+.log-drawer{background:#0a0a14;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:6px 10px;flex-shrink:0;transition:max-height .3s}
+.log-drawer.collapsed{max-height:0;padding:0 10px;overflow:hidden}
+.log-drawer.expanded{max-height:30vh}
+.log-e{font-size:.68em;padding:2px 0;color:#666;border-bottom:1px solid #111}
+.log-e.good{color:#4ecca3}.log-e.bad{color:#e94560}.log-e.event{color:#f9a826}
 
-/* Virtual joystick */
-.joystick-zone { position: absolute; bottom: 0; left: 0; width: 50%; height: 100%; z-index: 20; pointer-events: auto; }
-.joystick-base { position: absolute; width: 100px; height: 100px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.15); pointer-events: none; }
-.joystick-knob { position: absolute; width: 44px; height: 44px; border-radius: 50%; background: rgba(233,69,96,0.5); border: 2px solid rgba(233,69,96,0.7); pointer-events: none; }
+/* END DAY / EVENT BUTTONS */
+.end-day-bar{padding:6px 12px;background:#14142a;border-top:1px solid #222;flex-shrink:0;display:flex;gap:8px}
+.edb{flex:1;padding:10px;border-radius:6px;border:1px solid #f9a826;background:transparent;color:#f9a826;font-family:inherit;font-size:.8em;cursor:pointer}
+.edb:active{background:#f9a82622}
 
-/* Tap-to-enter building zone (right half of canvas) */
-.enter-zone { position: absolute; bottom: 10px; right: 10px; z-index: 20; }
-.enter-btn { width: 60px; height: 60px; border-radius: 50%; background: rgba(78,204,163,0.25); border: 2px solid rgba(78,204,163,0.6); color: #4ecca3; font-family: inherit; font-size: 0.75em; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.enter-btn:active { background: rgba(78,204,163,0.5); }
-.enter-btn.exit { background: rgba(233,69,96,0.25); border-color: rgba(233,69,96,0.6); color: #e94560; }
+/* MODALS */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:200;padding:16px}
+.modal{background:#1a1a2e;border:2px solid #e94560;border-radius:12px;padding:18px;max-width:420px;width:100%;max-height:85vh;overflow-y:auto}
+.modal h2{color:#e94560;font-size:1em;margin-bottom:8px}
+.modal p{font-size:.82em;line-height:1.4;margin-bottom:8px;color:#ccc}
+.mbtn{display:block;width:100%;margin:6px 0;padding:12px;background:#0f3460;border:1px solid #333;color:#ddd;border-radius:6px;cursor:pointer;font-family:inherit;font-size:.82em;text-align:left}
+.mbtn:active{background:#e94560}
+.mbtn:disabled{opacity:.3;pointer-events:none}
+.mbtn .mbtn-sub{color:#888;font-size:.85em}
 
-/* Mobile: bottom sheet for side panel */
-@media (max-width: 700px) {
-  .game-area { flex-direction: column; }
-  .side-panel { width: 100%; border-left: none; border-top: 2px solid #333; max-height: 40vh; }
-  .hud { gap: 5px; padding: 4px 8px; }
-  .hud-stat { font-size: 0.62em; padding: 2px 4px; }
-  .hud-title { font-size: 0.85em; }
-  .log-area { height: 60px; }
-  .act-btn { padding: 12px 10px; font-size: 0.82em; }
-  .modal { padding: 14px; }
-}
-
-/* Hide joystick on desktop */
-.touch-controls { display: none; }
-@media (hover: none) and (pointer: coarse) {
-  .touch-controls { display: block; }
-  .hud-hint { display: none; }
-}
+/* SUMMARY */
+.summ{text-align:center}
+.summ h2{font-size:1.4em;margin-bottom:10px}
+.summ .fs{font-size:.9em;margin:4px 0}
+.summ .alignment{font-size:1.1em;color:#f9a826;margin:8px 0}
+.summ .score{font-size:1.3em;color:#e94560;margin:10px 0}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const { useState, useCallback, useRef, useEffect } = React;
+const {useState,useCallback,useRef,useEffect} = React;
 
-// ===== GAME DATA =====
+// ========== SYSTEM 1: DATA MODEL ==========
+const INIT_STATE = () => ({
+  player: {
+    stats: { strength: 1, intelligence: 1, charm: 1, karma: 0 },
+    hp: 100, cash: 200, job: "Panhandler",
+    inventory: []
+  },
+  time: { day: 1, slotsRemaining: 4 },
+  flags: { hasSleptToday: false, activeEvent: null, gameOver: false, endReason: null },
+  log: [{ text: "Day 1. You exist now. Congratulations, that's the easy part.", type: "event" }]
+});
+
+const TOD_NAMES = ["night","evening","afternoon","midday","morning"];
+const getTod = (slots) => TOD_NAMES[slots] || "morning";
+
+// ========== SYSTEM 3: JOBS ==========
 const JOBS = [
-  { name: "Panhandler", pay: 5, req: {}, desc: "You hold a sign. It says 'anything helps'." },
-  { name: "Dishwasher", pay: 12, req: { int: 8 }, desc: "Endless plates. Sisyphus had it easier." },
-  { name: "Conv. Store Clerk", pay: 20, req: { int: 15 }, desc: "You guard snacks for minimum wage." },
-  { name: "Bouncer", pay: 40, req: { str: 30 }, desc: "You decide who's worthy of overpriced drinks." },
-  { name: "Personal Trainer", pay: 60, req: { str: 50, chm: 20 }, desc: "You yell at people and they thank you." },
-  { name: "Marketing Mgr", pay: 90, req: { int: 45, chm: 35 }, desc: "You convince people they need things they don't." },
-  { name: "Software Engineer", pay: 120, req: { int: 60 }, desc: "You argue about tabs vs spaces." },
-  { name: "Executive", pay: 200, req: { int: 80, chm: 50 }, desc: "You attend meetings about meetings." },
-  { name: "Crime Boss", pay: 250, req: { str: 60, chm: 40, karma: -20 }, desc: "Morally questionable, but you made it." },
-  { name: "Philanthropist CEO", pay: 300, req: { int: 90, chm: 70, karma: 20 }, desc: "You save the world and profit from it." },
+  { id:"panhandler", name:"Panhandler", pay:5, req:{}, desc:"Sign says 'anything helps'. It doesn't." },
+  { id:"dishwasher", name:"Dishwasher", pay:15, req:{intelligence:5}, desc:"Sisyphus had it easier." },
+  { id:"clerk", name:"Conv. Store Clerk", pay:25, req:{intelligence:15}, desc:"Guarding snacks for minimum wage." },
+  { id:"bouncer", name:"Bouncer", pay:45, req:{strength:30}, desc:"Deciding who deserves overpriced drinks." },
+  { id:"juniordev", name:"Junior Developer", pay:80, req:{intelligence:50}, desc:"Stack Overflow is your real boss." },
+  { id:"sales", name:"Sales Director", pay:120, req:{charm:50,intelligence:30}, desc:"You sell things. Even your soul, sometimes." },
+  { id:"executive", name:"Executive", pay:200, req:{intelligence:80,charm:50}, desc:"Meetings about meetings." },
+  { id:"crimeboss", name:"Crime Boss", pay:150, req:{strength:40,karmaCap:-40}, desc:"Morally bankrupt but financially solvent.", karmaShift:-2 },
+  { id:"philanthropist", name:"Philanthropist", pay:50, req:{charm:60,karmaFloor:60}, desc:"Saving the world at a modest salary.", karmaShift:2 },
 ];
 
+function canDoJob(job, stats) {
+  for (const [k,v] of Object.entries(job.req)) {
+    if (k === "karmaCap" && stats.karma > v) return false;
+    if (k === "karmaFloor" && stats.karma < v) return false;
+    if (k !== "karmaCap" && k !== "karmaFloor" && (stats[k]||0) < v) return false;
+  }
+  return true;
+}
+
+// ========== SYSTEM 3: STORE ==========
 const STORE_ITEMS = [
-  { id: "energy_drink", name: "Energy Drink", cost: 5, desc: "Restore 10 HP", consumable: true, effect: { hp: 10 } },
-  { id: "skateboard", name: "Skateboard", cost: 15, desc: "+speed", consumable: false },
-  { id: "laptop", name: "Laptop", cost: 200, desc: "+5 INT", consumable: false, effect: { int: 5 }, oneTime: true },
-  { id: "dumbbells", name: "Dumbbells", cost: 150, desc: "+5 STR", consumable: false, effect: { str: 5 }, oneTime: true },
-  { id: "nice_clothes", name: "Nice Clothes", cost: 100, desc: "+5 CHM", consumable: false, effect: { chm: 5 }, oneTime: true },
-  { id: "alarm_clock", name: "Alarm Clock", cost: 30, desc: "Prevents oversleeping", consumable: false },
+  { id:"energy_drink", name:"Energy Drink", cost:5, desc:"+10 HP", consumable:true, effect:{hp:10} },
+  { id:"cheap_smokes", name:"Cheap Smokes", cost:3, desc:"+1 CHM, -3 HP", consumable:true, effect:{charm:1,hp:-3} },
+  { id:"laptop", name:"Laptop", cost:200, desc:"+5 INT (permanent)", oneTime:true, effect:{intelligence:5} },
+  { id:"dumbbells", name:"Dumbbells", cost:150, desc:"+5 STR (permanent)", oneTime:true, effect:{strength:5} },
+  { id:"nice_clothes", name:"Nice Clothes", cost:100, desc:"+5 CHM (permanent)", oneTime:true, effect:{charm:5} },
+  { id:"alarm_clock", name:"Alarm Clock", cost:50, desc:"Blocks oversleep event", oneTime:true },
+  { id:"skateboard", name:"Skateboard", cost:75, desc:"Flavor. +50 final score", oneTime:true },
+  { id:"penthouse_key", name:"Penthouse Key", cost:5000, desc:"Ultimate flex. +500 score", oneTime:true },
 ];
 
-const RANDOM_EVENTS = [
-  { text: "You see someone getting mugged in an alley.", choices: [
-    { label: "Intervene (STR 20+)", check: s=>s.str>=20, result: s=>({...s,karma:s.karma+3}), msg: "You step in. +3 Karma.", type: "good" },
-    { label: "Walk away", check: ()=>true, result: s=>({...s,karma:s.karma-2}), msg: "Not your problem. -2 Karma.", type: "bad" },
+// ========== SYSTEM 4: RANDOM EVENTS ==========
+const EVENTS = [
+  { title:"Mugging", desc:"Someone's getting mugged in the alley. The mugger hasn't noticed you yet.", choices:[
+    { label:"Intervene", req:{strength:20}, effects:s=>{const h=Math.random()<0.2?-10:0; return{karma:5,hp:h}}, result:s=>`You step in.${s.hp<0?' Took a hit. -10 HP.':''} +5 Karma.`, type:"good" },
+    { label:"Walk away", effects:()=>({karma:-3}), result:()=>"Not your problem. -3 Karma.", type:"bad" },
+    { label:"Call the cops", effects:()=>({karma:1}), result:()=>"You dial 911. Minimal effort, minimal karma. +1 Karma.", type:"event" },
   ]},
-  { text: "You find a wallet with $50.", choices: [
-    { label: "Keep the cash", check: ()=>true, result: s=>({...s,cash:s.cash+50,karma:s.karma-3}), msg: "+$50. -3 Karma.", type: "bad" },
-    { label: "Return it", check: ()=>true, result: s=>({...s,karma:s.karma+3,chm:s.chm+1}), msg: "+3 Karma, +1 CHM.", type: "good" },
+  { title:"Found Wallet", desc:"A fat wallet on the ground. $50 inside, plus an ID.", choices:[
+    { label:"Keep the cash", effects:()=>({cash:50,karma:-5}), result:()=>"+$50. -5 Karma. Sleep well.", type:"bad" },
+    { label:"Return it", effects:()=>({karma:3,charm:2,cash:10}), result:()=>"Owner gives you $10 reward. +3 Karma, +2 CHM.", type:"good" },
   ]},
-  { text: "A bar fight breaks out!", choices: [
-    { label: "Dodge!", check: ()=>true, result: s=>s.str>=15?{...s,str:s.str+1}:{...s,hp:Math.max(0,s.hp-10)}, msg: null, strCheck:15, msgPass:"Dodged! +1 STR.", msgFail:"Chair hits you. -10 HP.", type:"event" },
+  { title:"Bar Fight", desc:"Bottles fly. Someone threw a chair. You're in the splash zone.", choices:[
+    { label:"Dodge & fight", req:{strength:15}, effects:s=>s.strength>=15?{strength:2}:{hp:-15}, result:s=>s.strength>=15?"Handled it. +2 STR.":"Chair to the face. -15 HP.", type:"event" },
+    { label:"Run", effects:()=>({charm:-1}), result:()=>"You bolt. -1 CHM. Dignity: also gone.", type:"bad" },
   ]},
-  { text: "Shady guy offers 'enhancers' for $30.", choices: [
-    { label: "Buy ($30)", check: s=>s.cash>=30, result: s=>{const g=Math.random()>0.4; return g?{...s,cash:s.cash-30,str:s.str+3}:{...s,cash:s.cash-30,hp:Math.max(0,s.hp-15)};}, msg:null, randomCheck:true, msgPass:"They work! +3 STR.", msgFail:"Sugar pills. -15 HP.", type:"event" },
-    { label: "Decline", check: ()=>true, result: s=>s, msg: "Wise choice.", type: "event" },
+  { title:"Sketchy Job Offer", desc:"A man in a tracksuit says he has 'work' for you. No further details.", choices:[
+    { label:"Accept", req:{strength:40}, effects:()=>({karma:-5}), result:()=>"Crime Boss job unlocked. -5 Karma. You know what you signed up for.", type:"event", unlockJob:"crimeboss" },
+    { label:"Decline", effects:()=>({}), result:()=>"Wise. Probably.", type:"event" },
   ]},
-  { text: "Old woman needs help with groceries.", choices: [
-    { label: "Help her", check: ()=>true, result: s=>({...s,karma:s.karma+2,chm:s.chm+1}), msg: "+2 Karma, +1 CHM.", type: "good" },
-    { label: "Ignore", check: ()=>true, result: s=>({...s,karma:s.karma-1}), msg: "'Rotten youth'. -1 Karma.", type: "bad" },
+  { title:"Overslept", desc:"Your alarm didn't go off. Wait, do you even own one?", choices:[
+    { label:"Drag yourself up", effects:()=>({slotPenalty:1}), result:()=>"Lost 1 action slot today. Should've bought an alarm clock.", type:"bad", blockItem:"alarm_clock" },
   ]},
-  { text: "$20 on the ground - someone else sees it.", choices: [
-    { label: "Grab it (CHM 10+)", check: ()=>true, result: s=>s.chm>=10?{...s,cash:s.cash+20}:{...s,karma:s.karma-1}, msg:null, chmCheck:10, msgPass:"+$20.", msgFail:"They got it first.", type:"event" },
-    { label: "Let it go", check: ()=>true, result: s=>({...s,karma:s.karma+1}), msg: "+1 Karma.", type: "good" },
+  { title:"Lucky Day", desc:"You look down. A $20 bill. Just sitting there. Nobody around.", choices:[
+    { label:"Pick it up", effects:()=>({cash:20}), result:()=>"+$20. The universe occasionally doesn't hate you.", type:"good" },
   ]},
-  { text: "Street musician playing terribly.", choices: [
-    { label: "Tip $5", check: s=>s.cash>=5, result: s=>({...s,cash:s.cash-5,karma:s.karma+1}), msg: "+1 Karma. -$5.", type: "good" },
-    { label: "Tell them to stop", check: ()=>true, result: s=>({...s,karma:s.karma-1}), msg: "You monster. -1 Karma.", type: "bad" },
+  { title:"Charity Drive", desc:"Volunteers with clipboards and aggressive smiles. They want your money.", choices:[
+    { label:"Donate $50", req:{cash:50}, effects:()=>({cash:-50,karma:5,charm:2}), result:()=>"-$50. +5 Karma, +2 CHM. Tax-deductible? Probably not.", type:"good" },
+    { label:"Ignore", effects:()=>({}), result:()=>"You walk past. They judge you silently.", type:"event" },
+    { label:"Steal from the box", req:{karmaBelow:0}, effects:()=>({cash:30,karma:-10}), result:()=>"+$30. -10 Karma. A new low, even for you.", type:"bad" },
   ]},
-  { text: "Unattended laptop at the library.", choices: [
-    { label: "Guard it", check: ()=>true, result: s=>({...s,karma:s.karma+2}), msg: "+2 Karma.", type: "good" },
-    { label: "Steal it", check: ()=>true, result: s=>({...s,cash:s.cash+80,karma:s.karma-5}), msg: "+$80. -5 Karma.", type: "bad" },
+  { title:"Food Poisoning", desc:"That gas station sushi was a mistake. A terrible, terrible mistake.", choices:[
+    { label:"Suffer", effects:()=>({hp:-10}), result:()=>"-10 HP. Your stomach will remember this.", type:"bad" },
   ]},
 ];
 
-const NPC_DIALOGUES = [
-  { name: "Bartender Dave", reqChm: 0, reqKarma: null, lines: ["'First one's on the house.'"] },
-  { name: "Regular Pete", reqChm: 10, reqKarma: null, lines: ["'Don't take advice from bar guys.'"] },
-  { name: "Mysterious Woman", reqChm: 25, reqKarma: null, lines: ["'You're interesting.'"] },
-  { name: "Shady Tony", reqChm: 5, reqKarma: -10, lines: ["'You get things done.'"] },
-  { name: "Father Marcus", reqChm: 15, reqKarma: 15, lines: ["'Good to see a kind heart here.'"] },
+// ========== SYSTEM 3: NPC DIALOGUES ==========
+const NPCS = [
+  { name:"Bartender Dave", reqChm:0, lines:["'First one's on the house. Everything after is on you.'","'You look like you've got a story. They all do.'"] },
+  { name:"Regular Pete", reqChm:10, lines:["'Don't take advice from guys in bars.'","'I've been coming here since they changed the jukebox. Tragedy.'"] },
+  { name:"Mysterious Woman", reqChm:25, lines:["'You're more interesting than the usual crowd.'","'Everyone here is running from something.'"] },
+  { name:"Shady Tony", reqChm:5, reqKarma:-10, lines:["'You've got that look. Gets things done, no questions.'","'I know people. Those people know I know you.'"] },
+  { name:"Father Marcus", reqChm:15, reqKarma:15, lines:["'Good to see a kind heart in a place like this.'","'Charity gala next month. You should come.'"] },
 ];
 
-const BUILDINGS = [
-  { id:"apartment", label:"Apartment", x:120, y:280, w:100, h:80, color:"#2a4a5e", roofColor:"#1a3040", icon:"HOME" },
-  { id:"university", label:"University", x:360, y:100, w:130, h:90, color:"#3a2a5e", roofColor:"#2a1a4e", icon:"UNI" },
-  { id:"gym", label:"Gym", x:600, y:280, w:100, h:70, color:"#5e2a2a", roofColor:"#4e1a1a", icon:"GYM" },
-  { id:"bar", label:"The Rusty Nail", x:360, y:420, w:110, h:70, color:"#5e4a2a", roofColor:"#4e3a1a", icon:"BAR" },
-  { id:"workplace", label:"Workplace", x:600, y:100, w:110, h:80, color:"#2a5e3a", roofColor:"#1a4e2a", icon:"WORK" },
-  { id:"store", label:"Quick-E-Mart", x:120, y:100, w:100, h:70, color:"#4a5e2a", roofColor:"#3a4e1a", icon:"SHOP" },
-];
+// ========== MAIN APP ==========
+function App() {
+  const [gs, setGs] = useState(INIT_STATE);
+  const [location, setLocation] = useState("apartment");
+  const [logOpen, setLogOpen] = useState(false);
+  const [flashes, setFlashes] = useState({});
+  const [gambleWager, setGambleWager] = useState(10);
+  const mainRef = useRef(null);
 
-const WORLD_W = 850;
-const WORLD_H = 580;
+  const {player,time,flags,log} = gs;
+  const {stats} = player;
+  const tod = getTod(time.slotsRemaining);
+  const canAct = time.slotsRemaining > 0 && !flags.gameOver && !flags.activeEvent;
 
-function calcStatGain(stat) { return stat<100 ? Math.max(1, Math.floor(3 - stat/50)) : 1; }
-function getAvailableJobs(stats) {
-  return JOBS.filter(j => {
-    for (const [k,v] of Object.entries(j.req)) {
-      if (k==='karma') { if (v>0&&stats.karma<v) return false; if (v<0&&stats.karma>v) return false; }
-      else { if ((stats[k]||0)<v) return false; }
+  // Scroll main to top on location change
+  useEffect(() => { if (mainRef.current) mainRef.current.scrollTop = 0; }, [location]);
+
+  // Flash a stat change
+  const flash = useCallback((stat, dir) => {
+    setFlashes(prev => ({...prev, [stat]: dir}));
+    setTimeout(() => setFlashes(prev => { const n={...prev}; delete n[stat]; return n; }), 500);
+  }, []);
+
+  // Core state modifier
+  const modify = useCallback((changes, logMsg, logType="event") => {
+    setGs(prev => {
+      const p = {...prev, player:{...prev.player, stats:{...prev.player.stats}, inventory:[...prev.player.inventory]}, time:{...prev.time}, flags:{...prev.flags}, log:[...prev.log]};
+      let hpDelta = 0;
+      for (const [k,v] of Object.entries(changes)) {
+        if (k === "hp") { hpDelta += v; }
+        else if (k === "cash") { p.player.cash = Math.max(0, p.player.cash + v); }
+        else if (k === "karma") { p.player.stats.karma = Math.max(-100, Math.min(100, p.player.stats.karma + v)); flash("karma", v>0?"up":"down"); }
+        else if (k === "strength"||k === "intelligence"||k === "charm") { p.player.stats[k] = Math.max(0, p.player.stats[k] + v); flash(k, v>0?"up":"down"); }
+        else if (k === "slotPenalty") { p.time.slotsRemaining = Math.max(0, p.time.slotsRemaining - v); }
+      }
+      if (hpDelta !== 0) {
+        p.player.hp = Math.max(0, Math.min(100, p.player.hp + hpDelta));
+        flash("hp", hpDelta>0?"up":"down");
+      }
+      if (changes.cash) flash("cash", changes.cash>0?"up":"down");
+      if (logMsg) p.log = [{text:`Day ${p.time.day}: ${logMsg}`, type:logType}, ...p.log].slice(0,30);
+      if (p.player.hp <= 0) { p.flags.gameOver = true; p.flags.endReason = "death"; }
+      return p;
+    });
+  }, [flash]);
+
+  const addLog = useCallback((msg, type="event") => {
+    setGs(prev => ({...prev, log: [{text:`Day ${prev.time.day}: ${msg}`, type}, ...prev.log].slice(0,30)}));
+  }, []);
+
+  const useSlot = useCallback(() => {
+    setGs(prev => ({...prev, time: {...prev.time, slotsRemaining: prev.time.slotsRemaining - 1}}));
+  }, []);
+
+  // ========== SYSTEM 2: END DAY ==========
+  const endDay = useCallback(() => {
+    setGs(prev => {
+      const p = {...prev, player:{...prev.player, stats:{...prev.player.stats}}, time:{...prev.time}, flags:{...prev.flags}, log:[...prev.log]};
+      if (!p.flags.hasSleptToday) {
+        p.player.hp = Math.max(0, p.player.hp - 15);
+        p.log = [{text:`Day ${p.time.day}: You didn't sleep. -15 HP. Your body protests.`, type:"bad"}, ...p.log].slice(0,30);
+        flash("hp","down");
+      }
+      if (p.player.hp <= 0) { p.flags.gameOver=true; p.flags.endReason="death"; return p; }
+      if (p.time.day >= 100) { p.flags.gameOver=true; p.flags.endReason="day100"; return p; }
+      p.time.day++;
+      p.time.slotsRemaining = 4;
+      p.flags.hasSleptToday = false;
+      p.log = [{text:`--- Day ${p.time.day} ---`, type:"event"}, ...p.log].slice(0,30);
+      // Random event 20%
+      if (Math.random() < 0.2) {
+        let pool = EVENTS;
+        // Block overslept if has alarm clock
+        if (p.player.inventory.includes("alarm_clock")) pool = pool.filter(e=>e.title!=="Overslept");
+        const evt = pool[Math.floor(Math.random()*pool.length)];
+        p.flags.activeEvent = evt;
+      }
+      return p;
+    });
+  }, [flash]);
+
+  // Auto end day when slots = 0
+  useEffect(() => {
+    if (time.slotsRemaining <= 0 && !flags.gameOver && !flags.activeEvent) {
+      const t = setTimeout(endDay, 600);
+      return () => clearTimeout(t);
+    }
+  }, [time.slotsRemaining, flags.gameOver, flags.activeEvent, endDay]);
+
+  // ========== SYSTEM 4: EVENT HANDLING ==========
+  const handleEventChoice = (choice) => {
+    const efx = typeof choice.effects === "function" ? choice.effects(stats) : choice.effects;
+    const resultMsg = typeof choice.result === "function" ? choice.result(efx) : choice.result;
+    modify(efx, resultMsg, choice.type || "event");
+    if (choice.unlockJob) addLog(`New job unlocked: ${JOBS.find(j=>j.id===choice.unlockJob)?.name}`, "good");
+    setGs(prev => ({...prev, flags:{...prev.flags, activeEvent:null}}));
+  };
+
+  const canChoose = (choice) => {
+    if (!choice.req) return true;
+    for (const [k,v] of Object.entries(choice.req)) {
+      if (k === "strength"||k === "intelligence"||k === "charm") { if (stats[k] < v) return false; }
+      if (k === "cash" && player.cash < v) return false;
+      if (k === "karmaBelow" && stats.karma >= v) return false;
     }
     return true;
-  });
-}
-function getBestJob(stats) { const a=getAvailableJobs(stats); return a[a.length-1]; }
-
-// ===== DRAWING =====
-function drawStickFigure(ctx, x, y, facing, frame, hasSkateboard) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.scale(facing==='left'?-1:1, 1);
-  ctx.fillStyle='rgba(0,0,0,0.3)';
-  ctx.beginPath(); ctx.ellipse(0,24,8,3,0,0,Math.PI*2); ctx.fill();
-  const walk=Math.sin(frame*0.15)*0.3;
-  ctx.strokeStyle='#ddd'; ctx.lineWidth=2; ctx.lineCap='round';
-  ctx.beginPath(); ctx.moveTo(0,-8); ctx.lineTo(0,8); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(0,8); ctx.lineTo(-5,22+walk*4); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(0,8); ctx.lineTo(5,22-walk*4); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(0,-2); ctx.lineTo(-7,6-walk*3); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(0,-2); ctx.lineTo(7,6+walk*3); ctx.stroke();
-  ctx.fillStyle='#ddd'; ctx.beginPath(); ctx.arc(0,-14,6,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(2,-15,1,0,Math.PI*2); ctx.fill();
-  if (hasSkateboard) {
-    ctx.fillStyle='#e94560'; ctx.fillRect(-8,23,16,3);
-    ctx.fillStyle='#888'; ctx.beginPath(); ctx.arc(-5,28,2,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(5,28,2,0,Math.PI*2); ctx.fill();
-  }
-  ctx.restore();
-}
-
-function drawBuilding(ctx, b, isNear, isEntered, isMobile) {
-  ctx.fillStyle='rgba(0,0,0,0.2)'; ctx.fillRect(b.x+4,b.y+4,b.w,b.h);
-  ctx.fillStyle=isEntered?'#e9456040':(isNear?'#ffffff15':'#00000000');
-  ctx.fillRect(b.x-2,b.y-2,b.w+4,b.h+4);
-  ctx.fillStyle=b.color; ctx.fillRect(b.x,b.y,b.w,b.h);
-  ctx.fillStyle=b.roofColor;
-  ctx.beginPath(); ctx.moveTo(b.x-5,b.y); ctx.lineTo(b.x+b.w/2,b.y-20); ctx.lineTo(b.x+b.w+5,b.y); ctx.closePath(); ctx.fill();
-  ctx.fillStyle='#0008'; ctx.fillRect(b.x+b.w/2-7,b.y+b.h-22,14,22);
-  ctx.fillStyle=isEntered?'#f9a82688':'#f9a82644';
-  ctx.fillRect(b.x+10,b.y+15,12,10); ctx.fillRect(b.x+b.w-22,b.y+15,12,10);
-  ctx.fillStyle='#ddd'; ctx.font='bold 10px monospace'; ctx.textAlign='center';
-  ctx.fillText(b.icon, b.x+b.w/2, b.y-24);
-  ctx.fillStyle=isNear?'#fff':'#aaa'; ctx.font=`${isNear?'bold ':''}11px monospace`;
-  ctx.fillText(b.label, b.x+b.w/2, b.y+b.h+14);
-  if (isNear && !isEntered) {
-    ctx.fillStyle='#4ecca3'; ctx.font='9px monospace';
-    ctx.fillText(isMobile ? 'Tap green button' : '[E] Enter', b.x+b.w/2, b.y+b.h+26);
-  }
-}
-
-function drawWorld(ctx, w, h) {
-  const g=ctx.createLinearGradient(0,0,0,h); g.addColorStop(0,'#0a0a1a'); g.addColorStop(1,'#1a1a2e');
-  ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
-  ctx.fillStyle='#ffffff22';
-  for (let i=0;i<40;i++) { ctx.fillRect((i*137.5)%w,(i*83.3)%(h*0.4),1.5,1.5); }
-  ctx.fillStyle='#1a2a1a'; ctx.fillRect(0,h*0.85,w,h*0.15);
-  ctx.fillStyle='#222'; ctx.fillRect(0,h*0.48,w,40);
-  ctx.strokeStyle='#f9a82633'; ctx.lineWidth=1; ctx.setLineDash([15,10]);
-  ctx.beginPath(); ctx.moveTo(0,h*0.5); ctx.lineTo(w,h*0.5); ctx.stroke(); ctx.setLineDash([]);
-  ctx.fillStyle='#222'; ctx.fillRect(w*0.38,0,40,h);
-  ctx.strokeStyle='#f9a82633'; ctx.setLineDash([15,10]);
-  ctx.beginPath(); ctx.moveTo(w*0.4,0); ctx.lineTo(w*0.4,h); ctx.stroke(); ctx.setLineDash([]);
-  ctx.fillStyle='#2a2a2a';
-  ctx.fillRect(0,h*0.48-6,w,6); ctx.fillRect(0,h*0.48+40,w,6);
-  ctx.fillRect(w*0.38-6,0,6,h); ctx.fillRect(w*0.38+40,0,6,h);
-  for (let lx of [80,300,520,740]) {
-    ctx.strokeStyle='#444'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(lx,h*0.48-6); ctx.lineTo(lx,h*0.48-40); ctx.stroke();
-    ctx.fillStyle='#f9a82644'; ctx.beginPath(); ctx.arc(lx,h*0.48-42,4,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#f9a82808';
-    ctx.beginPath(); ctx.moveTo(lx-15,h*0.48-6); ctx.lineTo(lx,h*0.48-38); ctx.lineTo(lx+15,h*0.48-6); ctx.fill();
-  }
-}
-
-// ===== MAIN APP =====
-function App() {
-  const canvasRef = useRef(null);
-  const keysRef = useRef({});
-  const frameRef = useRef(0);
-  const animRef = useRef(null);
-  const joystickRef = useRef({ active: false, dx: 0, dy: 0 });
-  const touchIdRef = useRef(null);
-
-  const [gameState, setGameState] = useState("playing");
-  const [stats, setStats] = useState({ str:1, int:1, chm:1, karma:0 });
-  const [hp, setHp] = useState(100);
-  const [cash, setCash] = useState(200);
-  const [day, setDay] = useState(1);
-  const [slotsUsed, setSlotsUsed] = useState(0);
-  const [sleptToday, setSleptToday] = useState(false);
-  const [enteredBuilding, setEnteredBuilding] = useState(null);
-  const [log, setLog] = useState([{ text: "Day 1. You wake up. The world awaits.", type: "event" }]);
-  const [inventory, setInventory] = useState([]);
-  const [usedOneTime, setUsedOneTime] = useState([]);
-  const [currentEvent, setCurrentEvent] = useState(null);
-  const [daySummary, setDaySummary] = useState([]);
-  const [nearBuilding, setNearBuilding] = useState(null);
-  const [joystickPos, setJoystickPos] = useState(null); // {bx, by, kx, ky}
-  const [isMobile, setIsMobile] = useState(false);
-  const logRef = useRef(null);
-  const playerRef = useRef({ x: 170, y: 370 });
-  const facingRef = useRef('right');
-  const movingRef = useRef(false);
-  const nearBuildingRef = useRef(null);
-  const gameStateRef = useRef("playing");
-
-  const canAct = slotsUsed < 4 && (gameState === "playing" || gameState === "inBuilding");
-  const hasSkateboard = inventory.includes('skateboard');
-
-  // Detect touch device
-  useEffect(() => {
-    const check = () => setIsMobile(window.matchMedia('(hover: none) and (pointer: coarse)').matches);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
-
-  // Keep gameState ref in sync
-  useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
-  useEffect(() => { nearBuildingRef.current = nearBuilding; }, [nearBuilding]);
-
-  const addLog = useCallback((text, type = "") => {
-    setLog(prev => [...prev, { text: `Day ${day}: ${text}`, type }]);
-  }, [day]);
-
-  useEffect(() => {
-    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
-  }, [log]);
-
-  // Keyboard input
-  useEffect(() => {
-    const down = (e) => { keysRef.current[e.key.toLowerCase()] = true; };
-    const up = (e) => { keysRef.current[e.key.toLowerCase()] = false; };
-    window.addEventListener('keydown', down);
-    window.addEventListener('keyup', up);
-    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
-  }, []);
-
-  // Enter building with E / Escape
-  useEffect(() => {
-    const handler = (e) => {
-      if (e.key.toLowerCase() === 'e') {
-        if (enteredBuilding) { setEnteredBuilding(null); setGameState("playing"); }
-        else if (nearBuilding && gameState === "playing" && canAct) { setEnteredBuilding(nearBuilding); setGameState("inBuilding"); }
-      }
-      if (e.key === 'Escape' && enteredBuilding) { setEnteredBuilding(null); setGameState("playing"); }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [nearBuilding, enteredBuilding, gameState, canAct]);
-
-  // ===== TOUCH JOYSTICK =====
-  const handleJoystickStart = useCallback((e) => {
-    if (gameStateRef.current !== "playing") return;
-    e.preventDefault();
-    const touch = e.changedTouches[0];
-    touchIdRef.current = touch.identifier;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const tx = touch.clientX - rect.left;
-    const ty = touch.clientY - rect.top;
-    joystickRef.current = { active: true, originX: tx, originY: ty, dx: 0, dy: 0 };
-    setJoystickPos({ bx: tx - 50, by: ty - 50, kx: tx - 22, ky: ty - 22 });
-  }, []);
-
-  const handleJoystickMove = useCallback((e) => {
-    e.preventDefault();
-    const js = joystickRef.current;
-    if (!js.active) return;
-    for (let i = 0; i < e.changedTouches.length; i++) {
-      const t = e.changedTouches[i];
-      if (t.identifier === touchIdRef.current) {
-        const rect = e.currentTarget.getBoundingClientRect();
-        const tx = t.clientX - rect.left;
-        const ty = t.clientY - rect.top;
-        let dx = tx - js.originX;
-        let dy = ty - js.originY;
-        const dist = Math.hypot(dx, dy);
-        const maxR = 40;
-        if (dist > maxR) { dx = dx/dist*maxR; dy = dy/dist*maxR; }
-        js.dx = dx / maxR;
-        js.dy = dy / maxR;
-        setJoystickPos({ bx: js.originX - 50, by: js.originY - 50, kx: js.originX + dx - 22, ky: js.originY + dy - 22 });
-      }
-    }
-  }, []);
-
-  const handleJoystickEnd = useCallback((e) => {
-    e.preventDefault();
-    for (let i = 0; i < e.changedTouches.length; i++) {
-      if (e.changedTouches[i].identifier === touchIdRef.current) {
-        joystickRef.current = { active: false, dx: 0, dy: 0 };
-        touchIdRef.current = null;
-        setJoystickPos(null);
-      }
-    }
-  }, []);
-
-  // Tap to enter/exit building
-  const handleEnterToggle = useCallback(() => {
-    if (enteredBuilding) {
-      setEnteredBuilding(null);
-      setGameState("playing");
-    } else if (nearBuildingRef.current && gameStateRef.current === "playing") {
-      setEnteredBuilding(nearBuildingRef.current);
-      setGameState("inBuilding");
-    }
-  }, [enteredBuilding]);
-
-  // Tap building on canvas to walk toward it
-  const handleCanvasTap = useCallback((e) => {
-    if (gameStateRef.current !== "playing") return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = WORLD_W / rect.width;
-    const scaleY = WORLD_H / rect.height;
-    const tx = (e.clientX - rect.left) * scaleX;
-    const ty = (e.clientY - rect.top) * scaleY;
-
-    // Check if tapped on a building
-    for (const b of BUILDINGS) {
-      if (tx >= b.x - 10 && tx <= b.x + b.w + 10 && ty >= b.y - 30 && ty <= b.y + b.h + 30) {
-        // Set target to walk to
-        playerRef.current.targetX = b.x + b.w / 2;
-        playerRef.current.targetY = b.y + b.h + 35;
-        return;
-      }
-    }
-    // Tap empty space = walk there
-    playerRef.current.targetX = tx;
-    playerRef.current.targetY = ty;
-  }, []);
-
-  // Game loop
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-
-    const loop = () => {
-      frameRef.current++;
-      const keys = keysRef.current;
-      const js = joystickRef.current;
-      const speed = hasSkateboard ? 3.5 : 2.5;
-      let moved = false;
-      const p = playerRef.current;
-
-      if (gameStateRef.current === "playing") {
-        // Keyboard movement
-        if (keys['w']||keys['arrowup']) { p.y=Math.max(30,p.y-speed); moved=true; p.targetX=undefined; }
-        if (keys['s']||keys['arrowdown']) { p.y=Math.min(WORLD_H-10,p.y+speed); moved=true; p.targetX=undefined; }
-        if (keys['a']||keys['arrowleft']) { p.x=Math.max(15,p.x-speed); facingRef.current='left'; moved=true; p.targetX=undefined; }
-        if (keys['d']||keys['arrowright']) { p.x=Math.min(WORLD_W-15,p.x+speed); facingRef.current='right'; moved=true; p.targetX=undefined; }
-
-        // Joystick movement
-        if (js.active && (Math.abs(js.dx)>0.15 || Math.abs(js.dy)>0.15)) {
-          p.x = Math.max(15, Math.min(WORLD_W-15, p.x + js.dx * speed));
-          p.y = Math.max(30, Math.min(WORLD_H-10, p.y + js.dy * speed));
-          if (js.dx < -0.15) facingRef.current = 'left';
-          if (js.dx > 0.15) facingRef.current = 'right';
-          moved = true;
-          p.targetX = undefined;
-        }
-
-        // Tap-to-walk target
-        if (p.targetX !== undefined && p.targetY !== undefined) {
-          const dx = p.targetX - p.x;
-          const dy = p.targetY - p.y;
-          const dist = Math.hypot(dx, dy);
-          if (dist > 5) {
-            p.x += (dx/dist) * speed;
-            p.y += (dy/dist) * speed;
-            if (dx < -0.5) facingRef.current = 'left';
-            if (dx > 0.5) facingRef.current = 'right';
-            moved = true;
-          } else {
-            p.targetX = undefined;
-            p.targetY = undefined;
-          }
-        }
-
-        movingRef.current = moved;
-
-        let found = null;
-        for (const b of BUILDINGS) {
-          const dist = Math.hypot(p.x - (b.x+b.w/2), p.y - (b.y+b.h/2));
-          if (dist < 70) { found = b.id; break; }
-        }
-        setNearBuilding(found);
-      }
-
-      // Resize canvas to container
-      const container = canvas.parentElement;
-      const cw = container.clientWidth - (window.innerWidth > 700 && gameStateRef.current !== "gameOver" ? 300 : 0);
-      const ch = container.clientHeight;
-      canvas.width = cw;
-      canvas.height = ch;
-
-      // Scale to fit world
-      const scale = Math.min(cw / WORLD_W, ch / WORLD_H);
-      const ox = (cw - WORLD_W * scale) / 2;
-      const oy = (ch - WORLD_H * scale) / 2;
-      ctx.save();
-      ctx.translate(ox, oy);
-      ctx.scale(scale, scale);
-
-      drawWorld(ctx, WORLD_W, WORLD_H);
-      for (const b of BUILDINGS) {
-        drawBuilding(ctx, b, nearBuildingRef.current===b.id, enteredBuilding===b.id, isMobile);
-      }
-      drawStickFigure(ctx, p.x, p.y, facingRef.current, movingRef.current ? frameRef.current : 0, hasSkateboard);
-
-      if (frameRef.current < 180) {
-        ctx.fillStyle = `rgba(255,255,255,${Math.max(0, 0.5-frameRef.current/360)})`;
-        ctx.font = '12px monospace'; ctx.textAlign = 'center';
-        ctx.fillText(isMobile ? 'Drag left side to move | Tap buildings' : 'WASD to move | E to enter', WORLD_W/2, WORLD_H-15);
-      }
-
-      ctx.restore();
-      animRef.current = requestAnimationFrame(loop);
-    };
-    animRef.current = requestAnimationFrame(loop);
-    return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
-  }, [gameState, enteredBuilding, hasSkateboard, isMobile]);
-
-  // Auto end day
-  useEffect(() => {
-    if (slotsUsed >= 4 && (gameState==="playing"||gameState==="inBuilding")) endDay();
-  }, [slotsUsed]);
-
-  useEffect(() => {
-    if (hp <= 0 && gameState !== "gameOver") setGameState("gameOver");
-  }, [hp]);
-
-  const endDay = useCallback(() => {
-    setEnteredBuilding(null);
-    setGameState("dayEnd");
-    const summary = [];
-    let hpDelta = 0;
-    if (!sleptToday) { hpDelta=-15; summary.push("You didn't sleep. -15 HP."); }
-    setHp(prev => { const n=Math.min(100,Math.max(0,prev+hpDelta)); if(n<=0){setGameState("gameOver");summary.push("Game Over.");} return n; });
-    setDaySummary(summary);
-  }, [sleptToday]);
-
-  const startNewDay = () => {
-    const nd=day+1;
-    if (nd>100) { setGameState("gameOver"); return; }
-    setDay(nd); setSlotsUsed(0); setSleptToday(false); setEnteredBuilding(null);
-    setLog(prev=>[...prev,{text:`--- Day ${nd} ---`,type:"event"}]);
-    if (Math.random()<0.2) { setCurrentEvent(RANDOM_EVENTS[Math.floor(Math.random()*RANDOM_EVENTS.length)]); setGameState("event"); }
-    else setGameState("playing");
   };
 
-  const handleEventChoice = (choice) => {
-    if (!choice.check(stats)) return;
-    let ns = choice.result({...stats, hp, cash});
-    let msg = choice.msg;
-    if (!msg) {
-      if (choice.strCheck!==undefined) msg=stats.str>=choice.strCheck?choice.msgPass:choice.msgFail;
-      else if (choice.chmCheck!==undefined) msg=stats.chm>=choice.chmCheck?choice.msgPass:choice.msgFail;
-      else if (choice.randomCheck) msg=(ns.str!==undefined&&ns.str>stats.str)?choice.msgPass:choice.msgFail;
-    }
-    const {hp:nHp,cash:nCash,...pure}=ns;
-    setStats(prev=>({...prev,...pure}));
-    if(nHp!==undefined) setHp(nHp);
-    if(nCash!==undefined) setCash(nCash);
-    addLog(msg||"Something happened.",choice.type);
-    setCurrentEvent(null); setGameState("playing");
+  // ========== SYSTEM 3: ACTIONS ==========
+  const statGain = (base, stat) => {
+    const val = stats[stat];
+    if (val > 50) return Math.max(1, Math.floor(base * 0.5));
+    return base + Math.floor(Math.random() * 3); // base to base+2
   };
 
-  const useSlot = () => setSlotsUsed(p=>p+1);
-
-  // ===== ACTIONS =====
-  const doSleep = () => { if(!canAct||sleptToday)return; setSleptToday(true); setHp(p=>Math.min(100,p+20)); useSlot(); addLog("Slept. +20 HP.","good"); };
-  const doStudy = () => { if(!canAct||cash<10)return; const g=calcStatGain(stats.int); setCash(p=>p-10); setStats(p=>({...p,int:p.int+g})); useSlot(); addLog(`Studied. +${g} INT. -$10.`,"good"); };
-  const doGym = () => { if(!canAct)return; const g=calcStatGain(stats.str); setStats(p=>({...p,str:p.str+g})); useSlot(); addLog(`Worked out. +${g} STR.`,"good"); };
-  const doDrink = () => { if(!canAct||cash<5)return; setCash(p=>p-5); setHp(p=>Math.max(0,p-5)); const g=calcStatGain(stats.chm); setStats(p=>({...p,chm:p.chm+g})); useSlot(); addLog(`Drink. -5HP -$5 +${g}CHM.`,"event"); };
-  const doGamble = () => { if(!canAct||cash<10)return; const bet=Math.min(50,cash); if(Math.random()<0.35+stats.int/500){setCash(p=>p+bet);addLog(`Won $${bet*2}!`,"good");}else{setCash(p=>p-bet);addLog(`Lost $${bet}.`,"bad");} useSlot(); };
-  const doTalkNPC = () => {
-    if(!canAct)return;
-    const avail=NPC_DIALOGUES.filter(n=>{if(stats.chm<n.reqChm)return false;if(n.reqKarma!==null){if(n.reqKarma>0&&stats.karma<n.reqKarma)return false;if(n.reqKarma<0&&stats.karma>n.reqKarma)return false;}return true;});
-    if(!avail.length){addLog("Nobody talks to you.","bad");}
-    else{const npc=avail[Math.floor(Math.random()*avail.length)];const g=Math.random()>0.5?1:0;if(g)setStats(p=>({...p,chm:p.chm+1}));addLog(`${npc.name}: ${npc.lines[0]}${g?" +1CHM":""}`,"event");}
+  const doSleep = () => {
+    if (!canAct || flags.hasSleptToday) return;
+    modify({hp:20}, "Slept. +20 HP. Dreams are free.", "good");
+    setGs(prev=>({...prev,flags:{...prev.flags,hasSleptToday:true}}));
     useSlot();
   };
-  const doWork = () => { if(!canAct)return; const j=getBestJob(stats); setCash(p=>p+j.pay); useSlot(); addLog(`Worked: ${j.name}. +$${j.pay}.`,"good"); };
-  const doBuyItem = (item) => {
-    if(cash<item.cost)return; if(item.oneTime&&usedOneTime.includes(item.id))return;
-    setCash(p=>p-item.cost);
-    if(item.consumable){if(item.effect?.hp)setHp(p=>Math.min(100,p+item.effect.hp));addLog(`Bought ${item.name}.`,"good");}
-    else{if(!inventory.includes(item.id))setInventory(p=>[...p,item.id]);if(item.oneTime&&item.effect){setUsedOneTime(p=>[...p,item.id]);if(item.effect.int)setStats(p=>({...p,int:p.int+item.effect.int}));if(item.effect.str)setStats(p=>({...p,str:p.str+item.effect.str}));if(item.effect.chm)setStats(p=>({...p,chm:p.chm+item.effect.chm}));}addLog(`Bought ${item.name}.`,"good");}
+
+  const doStudy = () => {
+    if (!canAct || player.cash < 10) return;
+    const g = statGain(2, "intelligence");
+    modify({intelligence:g, cash:-10}, `Studied. +${g} INT. -$10.`, "good");
+    useSlot();
   };
 
-  // ===== SIDE PANEL =====
-  const renderSidePanel = () => {
-    if (gameState === "gameOver") return null;
-    if (!enteredBuilding) {
-      return (
-        <div className="side-panel">
-          <h3>Explore</h3>
-          <div className="desc">{isMobile ? 'Drag to move. Tap buildings.' : 'Walk to a building, press [E].'}</div>
-          <div className="action-list">
-            {slotsUsed>0&&canAct&&<button className="end-day-btn" onClick={endDay}>End Day Early</button>}
-            <div style={{padding:'8px 10px',fontSize:'0.72em',color:'#555'}}>
-              <div>Items: {inventory.length?inventory.map(id=>STORE_ITEMS.find(i=>i.id===id)?.name).join(', '):'Empty'}</div>
-              <div style={{marginTop:3}}>Job: {getBestJob(stats).name} (${getBestJob(stats).pay}/slot)</div>
-            </div>
+  const doWorkout = () => {
+    if (!canAct) return;
+    const g = statGain(2, "strength");
+    modify({strength:g}, `Worked out. +${g} STR.`, "good");
+    useSlot();
+  };
+
+  const doSpar = () => {
+    if (!canAct || stats.strength < 25) return;
+    if (Math.random() < 0.5) {
+      modify({strength:3}, "Sparred and won. +3 STR.", "good");
+    } else {
+      modify({strength:1, hp:-10}, "Sparred and lost. +1 STR, -10 HP.", "bad");
+    }
+    useSlot();
+  };
+
+  const doDrink = () => {
+    if (!canAct || player.cash < 5) return;
+    const g = statGain(1, "charm");
+    modify({hp:-5, cash:-5, charm:g}, `Drink. +${g} CHM, -5 HP, -$5.`, "event");
+    useSlot();
+  };
+
+  const doGamble = () => {
+    if (!canAct || player.cash < 10) return;
+    const wager = Math.min(gambleWager, player.cash);
+    const winChance = Math.min(0.7, 0.4 + stats.intelligence * 0.003);
+    if (Math.random() < winChance) {
+      modify({cash:wager}, `Gambled $${wager} and won $${wager*2}! House hates you.`, "good");
+    } else {
+      modify({cash:-wager}, `Gambled $${wager} and lost. House always wins.`, "bad");
+    }
+    useSlot();
+  };
+
+  const doTalkNPC = () => {
+    const avail = NPCS.filter(n => {
+      if (stats.charm < n.reqChm) return false;
+      if (n.reqKarma !== undefined) {
+        if (n.reqKarma > 0 && stats.karma < n.reqKarma) return false;
+        if (n.reqKarma < 0 && stats.karma > n.reqKarma) return false;
+      }
+      return true;
+    });
+    if (!avail.length) { addLog("Nobody wants to talk to you.", "bad"); return; }
+    const npc = avail[Math.floor(Math.random()*avail.length)];
+    const line = npc.lines[Math.floor(Math.random()*npc.lines.length)];
+    addLog(`${npc.name}: ${line}`, "event");
+  };
+
+  const doWork = () => {
+    if (!canAct) return;
+    const job = JOBS.find(j=>j.id===player.job);
+    if (!job) return;
+    const efx = {cash:job.pay};
+    if (job.karmaShift) efx.karma = job.karmaShift;
+    modify(efx, `Worked as ${job.name}. +$${job.pay}.${job.karmaShift?` ${job.karmaShift>0?'+':''}${job.karmaShift} Karma.`:''}`, "good");
+    useSlot();
+  };
+
+  const switchJob = (jobId) => {
+    const job = JOBS.find(j=>j.id===jobId);
+    if (!job || !canDoJob(job, stats)) return;
+    setGs(prev=>({...prev, player:{...prev.player, job:jobId}}));
+    addLog(`Switched to ${job.name}.`, "event");
+  };
+
+  const buyItem = (item) => {
+    if (player.cash < item.cost) return;
+    if (item.oneTime && player.inventory.includes(item.id)) return;
+    const efx = {cash: -item.cost};
+    if (item.effect) {
+      for (const [k,v] of Object.entries(item.effect)) {
+        if (k === "hp") efx.hp = (efx.hp||0) + v;
+        else efx[k] = (efx[k]||0) + v;
+      }
+    }
+    modify(efx, `Bought ${item.name}. ${item.desc}`, "good");
+    if (item.oneTime || !item.consumable) {
+      setGs(prev => {
+        if (prev.player.inventory.includes(item.id)) return prev;
+        return {...prev, player:{...prev.player, inventory:[...prev.player.inventory, item.id]}};
+      });
+    }
+  };
+
+  // ========== SYSTEM 6: SCORING ==========
+  const getKarmaLabel = () => {
+    const k=stats.karma;
+    if(k<=-50) return "Villain"; if(k<=-10) return "Shady"; if(k<=10) return "Neutral";
+    if(k<=50) return "Decent"; return "Saint";
+  };
+
+  const calcScore = () => {
+    let s = (stats.strength+stats.intelligence+stats.charm)*10 + player.cash + stats.karma*5 + time.day*2;
+    if(player.inventory.includes("penthouse_key")) s+=500;
+    if(player.inventory.includes("skateboard")) s+=50;
+    return s;
+  };
+
+  // ========== RENDER: GAME OVER ==========
+  if (flags.gameOver) {
+    const curJob = JOBS.find(j=>j.id===player.job);
+    return (
+      <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100dvh',padding:16,background:'#12121f'}}>
+        <div className="modal" style={{maxWidth:440}}>
+          <div className="summ">
+            <h2>{flags.endReason==="death"?"You Didn't Make It":"Your Life Story"}</h2>
+            <p style={{color:'#888'}}>{flags.endReason==="death"?"Your body gave out. Try sleeping next time.":"100 days. Here's what you did with them."}</p>
+            <div className="fs">Days Survived: <strong>{time.day}</strong></div>
+            <div className="fs">Cash: <strong style={{color:'#4ecca3'}}>${player.cash}</strong></div>
+            <div className="fs">STR <strong style={{color:'#fc5185'}}>{stats.strength}</strong> | INT <strong style={{color:'#6c63ff'}}>{stats.intelligence}</strong> | CHM <strong style={{color:'#f9a826'}}>{stats.charm}</strong></div>
+            <div className="fs">Karma: <strong style={{color:'#a8e6cf'}}>{stats.karma}</strong></div>
+            <div className="alignment">{getKarmaLabel()}</div>
+            <div className="fs">Job: <strong>{curJob?.name||"None"}</strong></div>
+            <div className="fs">Items: {player.inventory.length? player.inventory.map(id=>STORE_ITEMS.find(i=>i.id===id)?.name||id).join(', '):'None'}</div>
+            <div className="score">Score: {calcScore()}</div>
+            <button className="mbtn" onClick={()=>{ setGs(INIT_STATE()); setLocation("apartment"); }} style={{textAlign:'center',marginTop:10}}>Play Again</button>
           </div>
         </div>
-      );
-    }
-    const b=BUILDINGS.find(b=>b.id===enteredBuilding);
-    const leaveHint = isMobile ? 'Tap red button to leave.' : '[E/Esc] to leave.';
-    switch (enteredBuilding) {
-      case "apartment": return (<div className="side-panel"><h3>{b.label}</h3><div className="desc">It's small. It smells. {leaveHint}</div><div className="action-list">
-        <button className="act-btn" onClick={doSleep} disabled={!canAct||sleptToday}>{sleptToday?"Already Slept":"Sleep (+20 HP)"}<br/><span className="sub">1 slot</span></button>
-        <div style={{padding:'8px 10px',fontSize:'0.72em',color:'#666'}}>Items: {inventory.length?inventory.map(id=>STORE_ITEMS.find(i=>i.id===id)?.name).join(', '):'Dust and regret.'}</div>
-        {slotsUsed>0&&canAct&&<button className="end-day-btn" onClick={endDay}>End Day Early</button>}
-      </div></div>);
-      case "university": return (<div className="side-panel"><h3>{b.label}</h3><div className="desc">Hallowed halls. {leaveHint}</div><div className="action-list">
-        <button className="act-btn" onClick={doStudy} disabled={!canAct||cash<10}>Study (+INT, -$10)<br/><span className="sub">1 slot{cash<10?' | broke':''}</span></button>
-        {slotsUsed>0&&canAct&&<button className="end-day-btn" onClick={endDay}>End Day Early</button>}
-      </div></div>);
-      case "gym": return (<div className="side-panel"><h3>{b.label}</h3><div className="desc">Ambition and body spray. {leaveHint}</div><div className="action-list">
-        <button className="act-btn" onClick={doGym} disabled={!canAct}>Work Out (+STR)<br/><span className="sub">1 slot | free</span></button>
-        {slotsUsed>0&&canAct&&<button className="end-day-btn" onClick={endDay}>End Day Early</button>}
-      </div></div>);
-      case "bar": return (<div className="side-panel"><h3>The Rusty Nail</h3><div className="desc">Peanuts included. {leaveHint}</div><div className="action-list">
-        <button className="act-btn" onClick={doDrink} disabled={!canAct||cash<5}>Drink (+CHM -5HP -$5)<br/><span className="sub">1 slot</span></button>
-        <button className="act-btn" onClick={doGamble} disabled={!canAct||cash<10}>Gamble (INT helps)<br/><span className="sub">1 slot</span></button>
-        <button className="act-btn" onClick={doTalkNPC} disabled={!canAct}>Talk to Someone<br/><span className="sub">1 slot</span></button>
-        {slotsUsed>0&&canAct&&<button className="end-day-btn" onClick={endDay}>End Day Early</button>}
-      </div></div>);
-      case "workplace": return (<div className="side-panel"><h3>Workplace</h3><div className="desc">Bread crumbs. {leaveHint}</div><div className="action-list">
-        <button className="act-btn" onClick={doWork} disabled={!canAct}>Work: {getBestJob(stats).name}<br/><span className="sub">1 slot | +${getBestJob(stats).pay}</span></button>
-        <div style={{padding:'4px 0'}}>{JOBS.map((j,i)=>{const av=getAvailableJobs(stats).includes(j);const best=getBestJob(stats)===j;const req=Object.entries(j.req).map(([k,v])=>k==='karma'?`K${v>0?'>=':'<='}${v}`:`${k.toUpperCase()}${v}`).join(',')||'-';return<div key={i}className={`job-row ${av?'':'locked'} ${best?'active':''}`}><span className="jn">{j.name}</span><span className="jr">{req}</span><span className="jp">${j.pay}</span></div>;})}</div>
-        {slotsUsed>0&&canAct&&<button className="end-day-btn" onClick={endDay}>End Day Early</button>}
-      </div></div>);
-      case "store": return (<div className="side-panel"><h3>Quick-E-Mart</h3><div className="desc">You don't need it. {leaveHint}</div><div className="action-list">
-        {STORE_ITEMS.map(item=>{const used=usedOneTime.includes(item.id);const ok=cash>=item.cost&&!(item.oneTime&&used);return<button key={item.id}className="act-btn"onClick={()=>doBuyItem(item)}disabled={!ok}>{item.name} {used?'(Owned)':`($${item.cost})`}<br/><span className="sub">{item.desc}</span></button>;})}
-      </div></div>);
-      default: return null;
-    }
-  };
-
-  const getKarmaAlignment = () => {
-    if(stats.karma>=20)return"Saint";if(stats.karma>=10)return"Good Samaritan";if(stats.karma>=3)return"Decent Human";
-    if(stats.karma>=-2)return"Morally Ambiguous";if(stats.karma>=-10)return"Questionable";if(stats.karma>=-20)return"Villain in Training";return"Menace to Society";
-  };
-  const getFinalScore = () => stats.str+stats.int+stats.chm+Math.abs(stats.karma)+Math.floor(cash/10)+inventory.length*5;
-
-  if (gameState === "gameOver") {
-    const j=getBestJob(stats);
-    return (<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',height:'100dvh',padding:16}}>
-      <div className="modal" style={{border:'2px solid #e94560',maxWidth:500}}>
-        <div className="summary">
-          <h2>{hp<=0?"You Collapsed":"Your Life Summary"}</h2>
-          <p style={{color:'#888',fontSize:'0.82em'}}>{hp<=0?"Body gave out.":"100 days. Here's what you did."}</p>
-          <div className="fs">Days: <strong>{day}</strong></div>
-          <div className="fs">Cash: <strong style={{color:'#4ecca3'}}>${cash}</strong></div>
-          <div className="fs">STR <strong style={{color:'#fc5185'}}>{stats.str}</strong> | INT <strong style={{color:'#6c63ff'}}>{stats.int}</strong> | CHM <strong style={{color:'#f9a826'}}>{stats.chm}</strong></div>
-          <div className="fs">Karma: <strong style={{color:'#a8e6cf'}}>{stats.karma}</strong></div>
-          <div className="alignment">{getKarmaAlignment()}</div>
-          <div className="fs">Best Job: <strong>{j.name}</strong> (${j.pay}/slot)</div>
-          <div className="fs">Items: {inventory.length?inventory.map(id=>STORE_ITEMS.find(i=>i.id===id)?.name).join(', '):'None'}</div>
-          <div className="fs" style={{marginTop:10,fontSize:'1.2em'}}>Score: <strong style={{color:'#e94560'}}>{getFinalScore()}</strong></div>
-          <button className="modal-btn" onClick={()=>window.location.reload()} style={{marginTop:14,textAlign:'center'}}>Try Again</button>
-        </div>
       </div>
-    </div>);
+    );
   }
 
+  // ========== RENDER: LOCATION CONTENT ==========
+  const renderLocation = () => {
+    const curJob = JOBS.find(j=>j.id===player.job);
+    switch(location) {
+      case "apartment": return (<>
+        <div className="loc-title">Your Apartment</div>
+        <div className="loc-desc">It's small. It smells. It's yours.</div>
+        <div className="act-card" onClick={doSleep} style={!canAct||flags.hasSleptToday?{opacity:.35,pointerEvents:'none'}:{}}>
+          <div className="ac-name">{flags.hasSleptToday?"Already Slept Today":"Sleep"}</div>
+          <div className="ac-hint">+20 HP | 1 slot</div>
+        </div>
+        <div style={{marginTop:12,fontSize:'.75em',color:'#555'}}>
+          <div style={{marginBottom:4,color:'#888'}}>Stats:</div>
+          <div>STR {stats.strength} | INT {stats.intelligence} | CHM {stats.charm} | Karma {stats.karma}</div>
+          <div style={{marginTop:8,color:'#888'}}>Inventory:</div>
+          <div>{player.inventory.length? player.inventory.map(id=><span key={id} className="inv-tag">{STORE_ITEMS.find(i=>i.id===id)?.name||id}</span>) : <span style={{color:'#444'}}>Nothing but dust and regret.</span>}</div>
+        </div>
+      </>);
+
+      case "university": return (<>
+        <div className="loc-title">University</div>
+        <div className="loc-desc">Hallowed halls of learning. And crushing debt.</div>
+        <div className={`act-card${!canAct||player.cash<10?' disabled':''}`} onClick={doStudy}>
+          <div className="ac-name">Study</div>
+          <div className="ac-hint">+2-4 INT (diminishes past 50) | 1 slot</div>
+          <div className="ac-cost">-$10</div>
+          {player.cash<10 && <div className="ac-req">Can't afford tuition. Ironic.</div>}
+        </div>
+      </>);
+
+      case "gym": return (<>
+        <div className="loc-title">Gym</div>
+        <div className="loc-desc">Smells like ambition and body spray.</div>
+        <div className={`act-card${!canAct?' disabled':''}`} onClick={doWorkout}>
+          <div className="ac-name">Work Out</div>
+          <div className="ac-hint">+2-4 STR (diminishes past 50) | 1 slot</div>
+          <div className="ac-cost">Free</div>
+        </div>
+        <div className={`act-card${!canAct||stats.strength<25?' disabled':''}`} onClick={doSpar}>
+          <div className="ac-name">Spar</div>
+          <div className="ac-hint">50% +3 STR, 50% -10 HP +1 STR | 1 slot</div>
+          <div className="ac-cost">Free</div>
+          {stats.strength<25 && <div className="ac-req">Requires STR 25</div>}
+        </div>
+      </>);
+
+      case "bar": return (<>
+        <div className="loc-title">The Rusty Nail</div>
+        <div className="loc-desc">Every town has one. This one has peanuts.</div>
+        <div className={`act-card${!canAct||player.cash<5?' disabled':''}`} onClick={doDrink}>
+          <div className="ac-name">Drink</div>
+          <div className="ac-hint">+1-2 CHM, -5 HP | 1 slot</div>
+          <div className="ac-cost">-$5</div>
+        </div>
+        <div className={`act-card${!canAct||player.cash<10?' disabled':''}`} onClick={doGamble}>
+          <div className="ac-name">Gamble</div>
+          <div className="ac-hint">Win chance: {Math.min(70,Math.floor(40+stats.intelligence*0.3))}% | 1 slot</div>
+          <div className="ac-cost">Wager ${Math.min(gambleWager,player.cash)}</div>
+          <div style={{marginTop:6,display:'flex',gap:6,alignItems:'center'}}>
+            {[10,25,50,100].map(w=>(
+              <button key={w} onClick={(e)=>{e.stopPropagation();setGambleWager(w)}} style={{padding:'4px 8px',fontSize:'.7em',background:gambleWager===w?'#e94560':'#0f3460',border:'1px solid #333',color:'#ddd',borderRadius:4,cursor:'pointer',fontFamily:'inherit'}}>${w}</button>
+            ))}
+            <button onClick={(e)=>{e.stopPropagation();setGambleWager(player.cash)}} style={{padding:'4px 8px',fontSize:'.7em',background:gambleWager===player.cash?'#e94560':'#0f3460',border:'1px solid #333',color:'#ddd',borderRadius:4,cursor:'pointer',fontFamily:'inherit'}}>All</button>
+          </div>
+        </div>
+        <div className="act-card" onClick={doTalkNPC}>
+          <div className="ac-name">Talk to Someone</div>
+          <div className="ac-hint">Free action, no slot cost. Gated by CHM/Karma.</div>
+          <div className="ac-cost">Free</div>
+        </div>
+      </>);
+
+      case "workplace": return (<>
+        <div className="loc-title">Workplace</div>
+        <div className="loc-desc">Time to earn that bread. Or breadcrumbs.</div>
+        <div className={`act-card${!canAct?' disabled':''}`} onClick={doWork}>
+          <div className="ac-name">Work: {curJob?.name}</div>
+          <div className="ac-hint">{curJob?.desc}</div>
+          <div className="ac-cost">+${curJob?.pay}/slot{curJob?.karmaShift?` | ${curJob.karmaShift>0?'+':''}${curJob.karmaShift} K`:''}</div>
+        </div>
+        <div style={{marginTop:10,fontSize:'.72em',color:'#888',marginBottom:6}}>Switch Job (free):</div>
+        {JOBS.map(j=>{
+          const ok=canDoJob(j,stats);
+          const cur=player.job===j.id;
+          const req=Object.entries(j.req).map(([k,v])=>{
+            if(k==='karmaCap') return `Karma<=${v}`;
+            if(k==='karmaFloor') return `Karma>=${v}`;
+            return `${k.slice(0,3).toUpperCase()} ${v}`;
+          }).join(', ')||'-';
+          return(
+            <div key={j.id} className={`job-card${ok?'':' locked'}${cur?' current':''}`} onClick={()=>ok&&switchJob(j.id)}>
+              <span className="jname">{j.name}{cur?' *':''}</span>
+              <span className="jreq">{req}</span>
+              <span className="jpay">${j.pay}</span>
+            </div>
+          );
+        })}
+      </>);
+
+      case "store": return (<>
+        <div className="loc-title">Quick-E-Mart</div>
+        <div className="loc-desc">If we don't have it, you don't need it.</div>
+        {STORE_ITEMS.map(item=>{
+          const owned=item.oneTime&&player.inventory.includes(item.id);
+          const canBuy=player.cash>=item.cost&&!owned;
+          return(
+            <div key={item.id} className={`shop-card${canBuy?'':' disabled'}`} onClick={()=>canBuy&&buyItem(item)}>
+              <div><div className="sname">{item.name}{owned?' (Owned)':''}</div><div className="sdesc">{item.desc}</div></div>
+              <div className="scost">{owned?'---':`$${item.cost}`}</div>
+            </div>
+          );
+        })}
+        <div style={{fontSize:'.65em',color:'#444',marginTop:8}}>Shopping doesn't cost action slots.</div>
+      </>);
+    }
+  };
+
+  // NAV ICONS
+  const navItems = [
+    { id:"apartment", icon:"\u{1F3E0}", label:"Home" },
+    { id:"university", icon:"\u{1F4DA}", label:"Uni" },
+    { id:"gym", icon:"\u{1F4AA}", label:"Gym" },
+    { id:"bar", icon:"\u{1F37A}", label:"Bar" },
+    { id:"workplace", icon:"\u{1F4BC}", label:"Work" },
+    { id:"store", icon:"\u{1F6D2}", label:"Shop" },
+  ];
+
+  // HP bar color
+  const hpPct = player.hp;
+  const hpColor = hpPct > 60 ? '#4ecca3' : hpPct > 30 ? '#f9a826' : '#e94560';
+
   return (
-    <div style={{display:'flex',flexDirection:'column',height:'100vh',height:'100dvh'}}>
-      {/* HUD */}
-      <div className="hud">
-        <span className="hud-title">STICK LIFE</span>
-        <div className="hud-stat"><span className="l">D</span><span className="v v-day">{day}</span></div>
-        <div className="hud-stat"><span className="l">HP</span><span className="v v-hp">{hp}</span></div>
-        <div className="hud-stat"><span className="l">$</span><span className="v v-cash">{cash}</span></div>
-        <div className="hud-stat"><span className="l">S</span><span className="v v-str">{stats.str}</span></div>
-        <div className="hud-stat"><span className="l">I</span><span className="v v-int">{stats.int}</span></div>
-        <div className="hud-stat"><span className="l">C</span><span className="v v-chm">{stats.chm}</span></div>
-        <div className="hud-stat"><span className="l">K</span><span className="v v-karma">{stats.karma}</span></div>
-        <div className="hud-slots">
-          {[0,1,2,3].map(i=><div key={i} className={`hud-pip ${i<slotsUsed?'used':'free'}`}/>)}
+    <div style={{display:'flex',flexDirection:'column',height:'100dvh'}}>
+      {/* HEADER */}
+      <div className="hdr">
+        <div className="hdr-day">Day {time.day}/100</div>
+        <div className="hp-bar-wrap">
+          <div className="hp-bar-fill" style={{width:`${hpPct}%`,background:hpColor}} />
+          <div className="hp-bar-text">HP {player.hp}/100</div>
         </div>
-        <span className="hud-hint">WASD move | E enter/exit</span>
+        <div className="hdr-cash">${player.cash}</div>
       </div>
 
-      {/* Main area */}
-      <div className="game-area">
-        <div style={{flex:1,position:'relative',overflow:'hidden'}}>
-          <canvas ref={canvasRef} onClick={handleCanvasTap} style={{width:'100%',height:'100%'}} />
-
-          {/* Touch controls overlay */}
-          <div className="touch-controls">
-            {/* Joystick zone - left half */}
-            <div className="joystick-zone"
-              onTouchStart={handleJoystickStart}
-              onTouchMove={handleJoystickMove}
-              onTouchEnd={handleJoystickEnd}
-              onTouchCancel={handleJoystickEnd}
-            >
-              {joystickPos && <>
-                <div className="joystick-base" style={{left:joystickPos.bx,top:joystickPos.by}} />
-                <div className="joystick-knob" style={{left:joystickPos.kx,top:joystickPos.ky}} />
-              </>}
-            </div>
-
-            {/* Enter/Exit button - bottom right */}
-            <div className="enter-zone">
-              {(nearBuilding || enteredBuilding) && (
-                <button
-                  className={`enter-btn ${enteredBuilding ? 'exit' : ''}`}
-                  onClick={handleEnterToggle}
-                  onTouchEnd={(e) => { e.preventDefault(); handleEnterToggle(); }}
-                >
-                  {enteredBuilding ? 'EXIT' : 'GO IN'}
-                </button>
-              )}
-            </div>
-          </div>
+      {/* STATS RIBBON */}
+      <div className="ribbon">
+        <div className={`pill${flashes.strength?' flash-'+flashes.strength:''}`}><span className="pl">STR</span><span className="pv pv-str">{stats.strength}</span></div>
+        <div className={`pill${flashes.intelligence?' flash-'+flashes.intelligence:''}`}><span className="pl">INT</span><span className="pv pv-int">{stats.intelligence}</span></div>
+        <div className={`pill${flashes.charm?' flash-'+flashes.charm:''}`}><span className="pl">CHM</span><span className="pv pv-chm">{stats.charm}</span></div>
+        <div className={`pill${flashes.karma?' flash-'+flashes.karma:''}`}><span className="pl">K</span><span className="pv pv-karma">{stats.karma}</span></div>
+        <div className="slots-wrap">
+          {[0,1,2,3].map(i=><div key={i} className={`slot-dot ${i<(4-time.slotsRemaining)?'used':'free'}`}/>)}
         </div>
-        {renderSidePanel()}
+        <span className="tod-label">{tod}</span>
       </div>
 
-      {/* Log */}
-      <div className="log-area" ref={logRef}>
-        {log.map((e,i)=><div key={i} className={`log-entry ${e.type}`}>{e.text}</div>)}
+      {/* MAIN CONTENT */}
+      <div className={`main ${tod}`} ref={mainRef}>
+        {renderLocation()}
       </div>
 
-      {/* Event modal */}
-      {gameState==="event"&&currentEvent&&(
-        <div className="modal-overlay">
-          <div className="modal">
-            <h2>Random Event</h2>
-            <p>{currentEvent.text}</p>
-            {currentEvent.choices.map((c,i)=>{const ok=c.check(stats);return<button key={i}className="modal-btn"disabled={!ok}onClick={()=>handleEventChoice(c)}>{c.label}{!ok?' (Locked)':''}</button>;})}
-          </div>
+      {/* END DAY BAR */}
+      {time.slotsRemaining > 0 && time.slotsRemaining < 4 && (
+        <div className="end-day-bar">
+          <button className="edb" onClick={endDay}>End Day Early ({time.slotsRemaining} slots left)</button>
+        </div>
+      )}
+      {time.slotsRemaining <= 0 && !flags.gameOver && (
+        <div className="end-day-bar">
+          <div style={{flex:1,textAlign:'center',color:'#888',fontSize:'.8em',padding:8}}>Day ending...</div>
         </div>
       )}
 
-      {/* Day end */}
-      {gameState==="dayEnd"&&(
+      {/* LOG */}
+      <div className="log-toggle" onClick={()=>setLogOpen(p=>!p)}>{logOpen?'Hide':'Show'} Log ({log.length})</div>
+      <div className={`log-drawer ${logOpen?'expanded':'collapsed'}`}>
+        {log.map((e,i)=><div key={i} className={`log-e ${e.type}`}>{e.text}</div>)}
+      </div>
+
+      {/* BOTTOM NAV */}
+      <div className="bnav">
+        {navItems.map(n=>(
+          <button key={n.id} className={`bnav-btn${location===n.id?' active':''}`} onClick={()=>setLocation(n.id)}>
+            <span className="bnav-icon">{n.icon}</span>{n.label}
+          </button>
+        ))}
+      </div>
+
+      {/* EVENT MODAL */}
+      {flags.activeEvent && (
         <div className="modal-overlay">
           <div className="modal">
-            <h2>Day {day} Ends</h2>
-            {daySummary.length?daySummary.map((s,i)=><p key={i}>{s}</p>):<p>Another day survived.</p>}
-            <button className="modal-btn" onClick={startNewDay}>{day>=100?"Final Results":`Day ${day+1}`}</button>
+            <h2>{flags.activeEvent.title}</h2>
+            <p>{flags.activeEvent.desc}</p>
+            {flags.activeEvent.choices.map((c,i)=>{
+              // Check blocked by item
+              if (c.blockItem && player.inventory.includes(c.blockItem)) {
+                return <div key={i} className="mbtn" style={{opacity:.4,pointerEvents:'none'}}>{c.label}<br/><span className="mbtn-sub">Blocked by {STORE_ITEMS.find(it=>it.id===c.blockItem)?.name}</span></div>;
+              }
+              const ok = canChoose(c);
+              return <button key={i} className="mbtn" disabled={!ok} onClick={()=>handleEventChoice(c)}>{c.label}{!ok?' (Locked)':''}</button>;
+            })}
           </div>
         </div>
       )}
