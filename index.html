@@ -2,83 +2,105 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
 <title>Stick Life 2D</title>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #0a0a0a; color: #ddd; font-family: 'Courier New', monospace; overflow: hidden; height: 100vh; }
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body { background: #0a0a0a; color: #ddd; font-family: 'Courier New', monospace; overflow: hidden; height: 100vh; height: 100dvh; touch-action: none; user-select: none; -webkit-user-select: none; }
 
-#root { display: flex; flex-direction: column; height: 100vh; }
+#root { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
 
-.hud { background: #111; border-bottom: 2px solid #333; padding: 8px 16px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; z-index: 10; }
-.hud-title { color: #e94560; font-weight: bold; font-size: 1.1em; }
-.hud-stat { font-size: 0.8em; padding: 3px 8px; background: #1a1a2e; border-radius: 3px; }
+/* HUD */
+.hud { background: #111; border-bottom: 2px solid #333; padding: 6px 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; z-index: 10; min-height: 36px; }
+.hud-title { color: #e94560; font-weight: bold; font-size: 1em; }
+.hud-stat { font-size: 0.7em; padding: 2px 6px; background: #1a1a2e; border-radius: 3px; white-space: nowrap; }
 .hud-stat .l { color: #666; }
 .hud-stat .v { font-weight: bold; }
-.v-hp { color: #e94560; }
-.v-cash { color: #4ecca3; }
-.v-str { color: #fc5185; }
-.v-int { color: #6c63ff; }
-.v-chm { color: #f9a826; }
-.v-karma { color: #a8e6cf; }
-.v-day { color: #ddd; }
-.hud-slots { display: flex; gap: 4px; align-items: center; }
-.hud-pip { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #555; }
+.v-hp { color: #e94560; } .v-cash { color: #4ecca3; } .v-str { color: #fc5185; }
+.v-int { color: #6c63ff; } .v-chm { color: #f9a826; } .v-karma { color: #a8e6cf; } .v-day { color: #ddd; }
+.hud-slots { display: flex; gap: 3px; align-items: center; }
+.hud-pip { width: 10px; height: 10px; border-radius: 50%; border: 2px solid #555; }
 .hud-pip.used { background: #e94560; border-color: #e94560; }
 .hud-pip.free { background: #4ecca3; border-color: #4ecca3; }
-.hud-hint { font-size: 0.7em; color: #555; margin-left: auto; }
 
+/* Layout */
 .game-area { flex: 1; display: flex; position: relative; overflow: hidden; }
-
 canvas { display: block; }
 
-.side-panel { width: 320px; background: #111; border-left: 2px solid #333; display: flex; flex-direction: column; overflow: hidden; }
-.side-panel h3 { color: #e94560; padding: 10px 12px 6px; font-size: 0.95em; border-bottom: 1px solid #222; }
-.side-panel .desc { color: #666; font-size: 0.75em; padding: 4px 12px 8px; }
+/* Side panel - desktop */
+.side-panel { width: 300px; background: #111; border-left: 2px solid #333; display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; }
+.side-panel h3 { color: #e94560; padding: 8px 10px 5px; font-size: 0.9em; border-bottom: 1px solid #222; }
+.side-panel .desc { color: #666; font-size: 0.7em; padding: 3px 10px 6px; }
+.action-list { flex: 1; overflow-y: auto; padding: 4px; -webkit-overflow-scrolling: touch; }
 
-.action-list { flex: 1; overflow-y: auto; padding: 4px; }
-.act-btn { display: block; width: calc(100% - 8px); margin: 4px; padding: 8px 10px; background: #0f3460; border: 1px solid #333; color: #ddd; border-radius: 4px; cursor: pointer; font-family: inherit; font-size: 0.8em; text-align: left; transition: background 0.15s; }
-.act-btn:hover { background: #e94560; }
+.act-btn { display: block; width: calc(100% - 8px); margin: 4px; padding: 10px; background: #0f3460; border: 1px solid #333; color: #ddd; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 0.8em; text-align: left; transition: background 0.15s; }
+.act-btn:active { background: #e94560; }
 .act-btn:disabled { opacity: 0.35; cursor: not-allowed; background: #0f3460; }
 .act-btn .sub { color: #888; font-size: 0.85em; }
 
-.log-area { height: 120px; overflow-y: auto; border-top: 1px solid #333; padding: 6px 10px; background: #0a0a12; }
-.log-entry { font-size: 0.72em; padding: 2px 0; color: #777; }
-.log-entry.good { color: #4ecca3; }
-.log-entry.bad { color: #e94560; }
-.log-entry.event { color: #f9a826; }
+.log-area { height: 80px; overflow-y: auto; border-top: 1px solid #333; padding: 4px 8px; background: #0a0a12; -webkit-overflow-scrolling: touch; }
+.log-entry { font-size: 0.68em; padding: 1px 0; color: #777; }
+.log-entry.good { color: #4ecca3; } .log-entry.bad { color: #e94560; } .log-entry.event { color: #f9a826; }
 
-.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 200; }
-.modal { background: #1a1a2e; border: 2px solid #e94560; border-radius: 10px; padding: 20px; max-width: 460px; width: 90%; }
-.modal h2 { color: #e94560; margin-bottom: 10px; font-size: 1.1em; }
-.modal p { margin-bottom: 8px; font-size: 0.85em; line-height: 1.4; }
-.modal-btn { display: block; width: 100%; margin: 6px 0; padding: 10px; background: #0f3460; border: 1px solid #444; color: #ddd; border-radius: 4px; cursor: pointer; font-family: inherit; font-size: 0.85em; text-align: left; }
-.modal-btn:hover { background: #e94560; }
-.modal-btn:disabled { opacity: 0.35; cursor: not-allowed; background: #0f3460; }
+/* Modals */
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 16px; }
+.modal { background: #1a1a2e; border: 2px solid #e94560; border-radius: 10px; padding: 18px; max-width: 460px; width: 100%; max-height: 90vh; overflow-y: auto; }
+.modal h2 { color: #e94560; margin-bottom: 8px; font-size: 1em; }
+.modal p { margin-bottom: 8px; font-size: 0.82em; line-height: 1.4; }
+.modal-btn { display: block; width: 100%; margin: 6px 0; padding: 12px; background: #0f3460; border: 1px solid #444; color: #ddd; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 0.85em; text-align: left; }
+.modal-btn:active { background: #e94560; }
+.modal-btn:disabled { opacity: 0.35; background: #0f3460; }
 
 .summary { text-align: center; }
-.summary h2 { font-size: 1.5em; margin-bottom: 12px; }
-.summary .fs { font-size: 0.95em; margin: 5px 0; }
-.summary .alignment { font-size: 1.1em; color: #f9a826; margin: 10px 0; }
+.summary h2 { font-size: 1.3em; margin-bottom: 10px; }
+.summary .fs { font-size: 0.9em; margin: 4px 0; }
+.summary .alignment { font-size: 1em; color: #f9a826; margin: 8px 0; }
 
-.end-day-btn { display: block; width: calc(100% - 8px); margin: 4px; padding: 8px; background: transparent; border: 1px solid #f9a826; color: #f9a826; border-radius: 4px; cursor: pointer; font-family: inherit; font-size: 0.8em; }
-.end-day-btn:hover { background: #f9a82633; }
+.end-day-btn { display: block; width: calc(100% - 8px); margin: 4px; padding: 10px; background: transparent; border: 1px solid #f9a826; color: #f9a826; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 0.8em; }
+.end-day-btn:active { background: #f9a82633; }
 
-.job-row { display: flex; justify-content: space-between; padding: 4px 12px; font-size: 0.75em; border-bottom: 1px solid #1a1a1a; }
-.job-row.locked { opacity: 0.3; }
-.job-row.active { background: #0f3460; }
-.job-row .jn { color: #ddd; }
-.job-row .jr { color: #666; }
-.job-row .jp { color: #4ecca3; }
+.job-row { display: flex; justify-content: space-between; padding: 4px 10px; font-size: 0.7em; border-bottom: 1px solid #1a1a1a; }
+.job-row.locked { opacity: 0.3; } .job-row.active { background: #0f3460; }
+.job-row .jn { color: #ddd; } .job-row .jr { color: #666; } .job-row .jp { color: #4ecca3; }
+
+/* Virtual joystick */
+.joystick-zone { position: absolute; bottom: 0; left: 0; width: 50%; height: 100%; z-index: 20; pointer-events: auto; }
+.joystick-base { position: absolute; width: 100px; height: 100px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.15); pointer-events: none; }
+.joystick-knob { position: absolute; width: 44px; height: 44px; border-radius: 50%; background: rgba(233,69,96,0.5); border: 2px solid rgba(233,69,96,0.7); pointer-events: none; }
+
+/* Tap-to-enter building zone (right half of canvas) */
+.enter-zone { position: absolute; bottom: 10px; right: 10px; z-index: 20; }
+.enter-btn { width: 60px; height: 60px; border-radius: 50%; background: rgba(78,204,163,0.25); border: 2px solid rgba(78,204,163,0.6); color: #4ecca3; font-family: inherit; font-size: 0.75em; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.enter-btn:active { background: rgba(78,204,163,0.5); }
+.enter-btn.exit { background: rgba(233,69,96,0.25); border-color: rgba(233,69,96,0.6); color: #e94560; }
+
+/* Mobile: bottom sheet for side panel */
+@media (max-width: 700px) {
+  .game-area { flex-direction: column; }
+  .side-panel { width: 100%; border-left: none; border-top: 2px solid #333; max-height: 40vh; }
+  .hud { gap: 5px; padding: 4px 8px; }
+  .hud-stat { font-size: 0.62em; padding: 2px 4px; }
+  .hud-title { font-size: 0.85em; }
+  .log-area { height: 60px; }
+  .act-btn { padding: 12px 10px; font-size: 0.82em; }
+  .modal { padding: 14px; }
+}
+
+/* Hide joystick on desktop */
+.touch-controls { display: none; }
+@media (hover: none) and (pointer: coarse) {
+  .touch-controls { display: block; }
+  .hud-hint { display: none; }
+}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const { useState, useCallback, useRef, useEffect, useMemo } = React;
+const { useState, useCallback, useRef, useEffect } = React;
 
 // ===== GAME DATA =====
 const JOBS = [
@@ -96,7 +118,7 @@ const JOBS = [
 
 const STORE_ITEMS = [
   { id: "energy_drink", name: "Energy Drink", cost: 5, desc: "Restore 10 HP", consumable: true, effect: { hp: 10 } },
-  { id: "skateboard", name: "Skateboard", cost: 15, desc: "Cosmetic. +speed (visual only)", consumable: false },
+  { id: "skateboard", name: "Skateboard", cost: 15, desc: "+speed", consumable: false },
   { id: "laptop", name: "Laptop", cost: 200, desc: "+5 INT", consumable: false, effect: { int: 5 }, oneTime: true },
   { id: "dumbbells", name: "Dumbbells", cost: 150, desc: "+5 STR", consumable: false, effect: { str: 5 }, oneTime: true },
   { id: "nice_clothes", name: "Nice Clothes", cost: 100, desc: "+5 CHM", consumable: false, effect: { chm: 5 }, oneTime: true },
@@ -105,252 +127,183 @@ const STORE_ITEMS = [
 
 const RANDOM_EVENTS = [
   { text: "You see someone getting mugged in an alley.", choices: [
-    { label: "Intervene (STR 20+)", check: s => s.str >= 20, result: s => ({...s, karma: s.karma+3}), msg: "You step in and handle it. +3 Karma.", type: "good" },
-    { label: "Walk away", check: ()=>true, result: s => ({...s, karma: s.karma-2}), msg: "Not your problem. -2 Karma.", type: "bad" },
+    { label: "Intervene (STR 20+)", check: s=>s.str>=20, result: s=>({...s,karma:s.karma+3}), msg: "You step in. +3 Karma.", type: "good" },
+    { label: "Walk away", check: ()=>true, result: s=>({...s,karma:s.karma-2}), msg: "Not your problem. -2 Karma.", type: "bad" },
   ]},
-  { text: "You find a wallet with $50 and an ID.", choices: [
-    { label: "Keep the cash", check: ()=>true, result: s => ({...s, cash: s.cash+50, karma: s.karma-3}), msg: "+$50. -3 Karma. Worth it?", type: "bad" },
-    { label: "Return it", check: ()=>true, result: s => ({...s, karma: s.karma+3, chm: s.chm+1}), msg: "+3 Karma, +1 CHM. The serotonin kicks in.", type: "good" },
+  { text: "You find a wallet with $50.", choices: [
+    { label: "Keep the cash", check: ()=>true, result: s=>({...s,cash:s.cash+50,karma:s.karma-3}), msg: "+$50. -3 Karma.", type: "bad" },
+    { label: "Return it", check: ()=>true, result: s=>({...s,karma:s.karma+3,chm:s.chm+1}), msg: "+3 Karma, +1 CHM.", type: "good" },
   ]},
-  { text: "A bar fight breaks out near you!", choices: [
-    { label: "Dodge!", check: ()=>true, result: s => s.str >= 15 ? {...s, str: s.str+1} : {...s, hp: Math.max(0, s.hp-10)}, msg: null, strCheck: 15, msgPass: "Dodged! +1 STR.", msgFail: "A chair hits you. -10 HP.", type: "event" },
+  { text: "A bar fight breaks out!", choices: [
+    { label: "Dodge!", check: ()=>true, result: s=>s.str>=15?{...s,str:s.str+1}:{...s,hp:Math.max(0,s.hp-10)}, msg: null, strCheck:15, msgPass:"Dodged! +1 STR.", msgFail:"Chair hits you. -10 HP.", type:"event" },
   ]},
-  { text: "A shady guy offers 'performance enhancers' for $30.", choices: [
-    { label: "Buy them ($30)", check: s => s.cash >= 30, result: s => { const g = Math.random()>0.4; return g ? {...s, cash:s.cash-30, str:s.str+3} : {...s, cash:s.cash-30, hp:Math.max(0,s.hp-15)}; }, msg: null, randomCheck: true, msgPass: "They work! +3 STR.", msgFail: "Sugar pills with side effects. -15 HP.", type: "event" },
-    { label: "Decline", check: ()=>true, result: s => s, msg: "Wise choice. Probably.", type: "event" },
+  { text: "Shady guy offers 'enhancers' for $30.", choices: [
+    { label: "Buy ($30)", check: s=>s.cash>=30, result: s=>{const g=Math.random()>0.4; return g?{...s,cash:s.cash-30,str:s.str+3}:{...s,cash:s.cash-30,hp:Math.max(0,s.hp-15)};}, msg:null, randomCheck:true, msgPass:"They work! +3 STR.", msgFail:"Sugar pills. -15 HP.", type:"event" },
+    { label: "Decline", check: ()=>true, result: s=>s, msg: "Wise choice.", type: "event" },
   ]},
-  { text: "An old woman needs help with groceries.", choices: [
-    { label: "Help her", check: ()=>true, result: s => ({...s, karma: s.karma+2, chm: s.chm+1}), msg: "Cookie + life lesson. +2 Karma, +1 CHM.", type: "good" },
-    { label: "Ignore", check: ()=>true, result: s => ({...s, karma: s.karma-1}), msg: "She calls you 'rotten youth'. Fair.", type: "bad" },
+  { text: "Old woman needs help with groceries.", choices: [
+    { label: "Help her", check: ()=>true, result: s=>({...s,karma:s.karma+2,chm:s.chm+1}), msg: "+2 Karma, +1 CHM.", type: "good" },
+    { label: "Ignore", check: ()=>true, result: s=>({...s,karma:s.karma-1}), msg: "'Rotten youth'. -1 Karma.", type: "bad" },
   ]},
-  { text: "A $20 bill on the ground - someone else sees it too.", choices: [
-    { label: "Grab it (CHM 10+)", check: ()=>true, result: s => s.chm>=10 ? {...s, cash:s.cash+20} : {...s, karma:s.karma-1}, msg: null, chmCheck: 10, msgPass: "Smooth-talked them. +$20.", msgFail: "They got there first.", type: "event" },
-    { label: "Let it go", check: ()=>true, result: s => ({...s, karma: s.karma+1}), msg: "Broke, but dignified. +1 Karma.", type: "good" },
+  { text: "$20 on the ground - someone else sees it.", choices: [
+    { label: "Grab it (CHM 10+)", check: ()=>true, result: s=>s.chm>=10?{...s,cash:s.cash+20}:{...s,karma:s.karma-1}, msg:null, chmCheck:10, msgPass:"+$20.", msgFail:"They got it first.", type:"event" },
+    { label: "Let it go", check: ()=>true, result: s=>({...s,karma:s.karma+1}), msg: "+1 Karma.", type: "good" },
   ]},
   { text: "Street musician playing terribly.", choices: [
-    { label: "Tip $5", check: s => s.cash>=5, result: s => ({...s, cash:s.cash-5, karma:s.karma+1}), msg: "Still awful. Kindness isn't about talent.", type: "good" },
-    { label: "Tell them to stop", check: ()=>true, result: s => ({...s, karma:s.karma-1}), msg: "Devastated. You monster.", type: "bad" },
+    { label: "Tip $5", check: s=>s.cash>=5, result: s=>({...s,cash:s.cash-5,karma:s.karma+1}), msg: "+1 Karma. -$5.", type: "good" },
+    { label: "Tell them to stop", check: ()=>true, result: s=>({...s,karma:s.karma-1}), msg: "You monster. -1 Karma.", type: "bad" },
   ]},
   { text: "Unattended laptop at the library.", choices: [
-    { label: "Guard it", check: ()=>true, result: s => ({...s, karma:s.karma+2}), msg: "Owner returns grateful. +2 Karma.", type: "good" },
-    { label: "Steal it", check: ()=>true, result: s => ({...s, cash:s.cash+80, karma:s.karma-5}), msg: "Fenced for $80. Soul heavier. -5 Karma.", type: "bad" },
+    { label: "Guard it", check: ()=>true, result: s=>({...s,karma:s.karma+2}), msg: "+2 Karma.", type: "good" },
+    { label: "Steal it", check: ()=>true, result: s=>({...s,cash:s.cash+80,karma:s.karma-5}), msg: "+$80. -5 Karma.", type: "bad" },
   ]},
 ];
 
 const NPC_DIALOGUES = [
-  { name: "Bartender Dave", reqChm: 0, reqKarma: null, lines: ["'First one's on the house. Everything after is on you.'"] },
-  { name: "Regular Pete", reqChm: 10, reqKarma: null, lines: ["'Don't take advice from guys in bars.'"] },
-  { name: "Mysterious Woman", reqChm: 25, reqKarma: null, lines: ["'You're more interesting than the usual crowd.'"] },
-  { name: "Shady Tony", reqChm: 5, reqKarma: -10, lines: ["'You've got that look. The one that gets things done.'"] },
-  { name: "Father Marcus", reqChm: 15, reqKarma: 15, lines: ["'Good to see a kind heart in a place like this.'"] },
+  { name: "Bartender Dave", reqChm: 0, reqKarma: null, lines: ["'First one's on the house.'"] },
+  { name: "Regular Pete", reqChm: 10, reqKarma: null, lines: ["'Don't take advice from bar guys.'"] },
+  { name: "Mysterious Woman", reqChm: 25, reqKarma: null, lines: ["'You're interesting.'"] },
+  { name: "Shady Tony", reqChm: 5, reqKarma: -10, lines: ["'You get things done.'"] },
+  { name: "Father Marcus", reqChm: 15, reqKarma: 15, lines: ["'Good to see a kind heart here.'"] },
 ];
 
-// ===== BUILDING DEFINITIONS =====
 const BUILDINGS = [
-  { id: "apartment", label: "Apartment", x: 120, y: 280, w: 100, h: 80, color: "#2a4a5e", roofColor: "#1a3040", icon: "HOME" },
-  { id: "university", label: "University", x: 360, y: 100, w: 130, h: 90, color: "#3a2a5e", roofColor: "#2a1a4e", icon: "UNI" },
-  { id: "gym", label: "Gym", x: 600, y: 280, w: 100, h: 70, color: "#5e2a2a", roofColor: "#4e1a1a", icon: "GYM" },
-  { id: "bar", label: "The Rusty Nail", x: 360, y: 420, w: 110, h: 70, color: "#5e4a2a", roofColor: "#4e3a1a", icon: "BAR" },
-  { id: "workplace", label: "Workplace", x: 600, y: 100, w: 110, h: 80, color: "#2a5e3a", roofColor: "#1a4e2a", icon: "WORK" },
-  { id: "store", label: "Quick-E-Mart", x: 120, y: 100, w: 100, h: 70, color: "#4a5e2a", roofColor: "#3a4e1a", icon: "SHOP" },
+  { id:"apartment", label:"Apartment", x:120, y:280, w:100, h:80, color:"#2a4a5e", roofColor:"#1a3040", icon:"HOME" },
+  { id:"university", label:"University", x:360, y:100, w:130, h:90, color:"#3a2a5e", roofColor:"#2a1a4e", icon:"UNI" },
+  { id:"gym", label:"Gym", x:600, y:280, w:100, h:70, color:"#5e2a2a", roofColor:"#4e1a1a", icon:"GYM" },
+  { id:"bar", label:"The Rusty Nail", x:360, y:420, w:110, h:70, color:"#5e4a2a", roofColor:"#4e3a1a", icon:"BAR" },
+  { id:"workplace", label:"Workplace", x:600, y:100, w:110, h:80, color:"#2a5e3a", roofColor:"#1a4e2a", icon:"WORK" },
+  { id:"store", label:"Quick-E-Mart", x:120, y:100, w:100, h:70, color:"#4a5e2a", roofColor:"#3a4e1a", icon:"SHOP" },
 ];
 
 const WORLD_W = 850;
 const WORLD_H = 580;
 
-function calcStatGain(stat) { return stat < 100 ? Math.max(1, Math.floor(3 - stat / 50)) : 1; }
+function calcStatGain(stat) { return stat<100 ? Math.max(1, Math.floor(3 - stat/50)) : 1; }
 function getAvailableJobs(stats) {
   return JOBS.filter(j => {
     for (const [k,v] of Object.entries(j.req)) {
-      if (k==='karma') { if (v>0 && stats.karma<v) return false; if (v<0 && stats.karma>v) return false; }
+      if (k==='karma') { if (v>0&&stats.karma<v) return false; if (v<0&&stats.karma>v) return false; }
       else { if ((stats[k]||0)<v) return false; }
     }
     return true;
   });
 }
-function getBestJob(stats) { const a = getAvailableJobs(stats); return a[a.length-1]; }
+function getBestJob(stats) { const a=getAvailableJobs(stats); return a[a.length-1]; }
 
-// ===== STICK FIGURE DRAWING =====
+// ===== DRAWING =====
 function drawStickFigure(ctx, x, y, facing, frame, hasSkateboard) {
   ctx.save();
   ctx.translate(x, y);
-  const s = facing === 'left' ? -1 : 1;
-  ctx.scale(s, 1);
-
-  // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.beginPath();
-  ctx.ellipse(0, 24, 8, 3, 0, 0, Math.PI*2);
-  ctx.fill();
-
-  const walk = Math.sin(frame * 0.15) * 0.3;
-  ctx.strokeStyle = '#ddd';
-  ctx.lineWidth = 2;
-  ctx.lineCap = 'round';
-
-  // Body
-  ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(0, 8); ctx.stroke();
-  // Legs
-  ctx.beginPath(); ctx.moveTo(0, 8); ctx.lineTo(-5, 22 + walk*4); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(0, 8); ctx.lineTo(5, 22 - walk*4); ctx.stroke();
-  // Arms
-  ctx.beginPath(); ctx.moveTo(0, -2); ctx.lineTo(-7, 6 - walk*3); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(0, -2); ctx.lineTo(7, 6 + walk*3); ctx.stroke();
-  // Head
-  ctx.fillStyle = '#ddd';
-  ctx.beginPath(); ctx.arc(0, -14, 6, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#111';
-  ctx.beginPath(); ctx.arc(2, -15, 1, 0, Math.PI*2); ctx.fill();
-
+  ctx.scale(facing==='left'?-1:1, 1);
+  ctx.fillStyle='rgba(0,0,0,0.3)';
+  ctx.beginPath(); ctx.ellipse(0,24,8,3,0,0,Math.PI*2); ctx.fill();
+  const walk=Math.sin(frame*0.15)*0.3;
+  ctx.strokeStyle='#ddd'; ctx.lineWidth=2; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(0,-8); ctx.lineTo(0,8); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,8); ctx.lineTo(-5,22+walk*4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,8); ctx.lineTo(5,22-walk*4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,-2); ctx.lineTo(-7,6-walk*3); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,-2); ctx.lineTo(7,6+walk*3); ctx.stroke();
+  ctx.fillStyle='#ddd'; ctx.beginPath(); ctx.arc(0,-14,6,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(2,-15,1,0,Math.PI*2); ctx.fill();
   if (hasSkateboard) {
-    ctx.fillStyle = '#e94560';
-    ctx.fillRect(-8, 23, 16, 3);
-    ctx.fillStyle = '#888';
-    ctx.beginPath(); ctx.arc(-5, 28, 2, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(5, 28, 2, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle='#e94560'; ctx.fillRect(-8,23,16,3);
+    ctx.fillStyle='#888'; ctx.beginPath(); ctx.arc(-5,28,2,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(5,28,2,0,Math.PI*2); ctx.fill();
   }
-
   ctx.restore();
 }
 
-function drawBuilding(ctx, b, isNear, isEntered) {
-  // Building shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.2)';
-  ctx.fillRect(b.x+4, b.y+4, b.w, b.h);
-
-  // Main body
-  ctx.fillStyle = isEntered ? '#e9456040' : (isNear ? '#ffffff15' : '#00000000');
-  ctx.fillRect(b.x-2, b.y-2, b.w+4, b.h+4);
-
-  ctx.fillStyle = b.color;
-  ctx.fillRect(b.x, b.y, b.w, b.h);
-
-  // Roof
-  ctx.fillStyle = b.roofColor;
-  ctx.beginPath();
-  ctx.moveTo(b.x - 5, b.y);
-  ctx.lineTo(b.x + b.w/2, b.y - 20);
-  ctx.lineTo(b.x + b.w + 5, b.y);
-  ctx.closePath();
-  ctx.fill();
-
-  // Door
-  ctx.fillStyle = '#0008';
-  const dw = 14, dh = 22;
-  ctx.fillRect(b.x + b.w/2 - dw/2, b.y + b.h - dh, dw, dh);
-
-  // Windows
-  ctx.fillStyle = isEntered ? '#f9a82688' : '#f9a82644';
-  const wy = b.y + 15;
-  ctx.fillRect(b.x + 10, wy, 12, 10);
-  ctx.fillRect(b.x + b.w - 22, wy, 12, 10);
-
-  // Icon label
-  ctx.fillStyle = '#ddd';
-  ctx.font = 'bold 10px monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText(b.icon, b.x + b.w/2, b.y - 24);
-
-  // Label
-  ctx.fillStyle = isNear ? '#fff' : '#aaa';
-  ctx.font = `${isNear ? 'bold ' : ''}11px monospace`;
-  ctx.fillText(b.label, b.x + b.w/2, b.y + b.h + 14);
-
+function drawBuilding(ctx, b, isNear, isEntered, isMobile) {
+  ctx.fillStyle='rgba(0,0,0,0.2)'; ctx.fillRect(b.x+4,b.y+4,b.w,b.h);
+  ctx.fillStyle=isEntered?'#e9456040':(isNear?'#ffffff15':'#00000000');
+  ctx.fillRect(b.x-2,b.y-2,b.w+4,b.h+4);
+  ctx.fillStyle=b.color; ctx.fillRect(b.x,b.y,b.w,b.h);
+  ctx.fillStyle=b.roofColor;
+  ctx.beginPath(); ctx.moveTo(b.x-5,b.y); ctx.lineTo(b.x+b.w/2,b.y-20); ctx.lineTo(b.x+b.w+5,b.y); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#0008'; ctx.fillRect(b.x+b.w/2-7,b.y+b.h-22,14,22);
+  ctx.fillStyle=isEntered?'#f9a82688':'#f9a82644';
+  ctx.fillRect(b.x+10,b.y+15,12,10); ctx.fillRect(b.x+b.w-22,b.y+15,12,10);
+  ctx.fillStyle='#ddd'; ctx.font='bold 10px monospace'; ctx.textAlign='center';
+  ctx.fillText(b.icon, b.x+b.w/2, b.y-24);
+  ctx.fillStyle=isNear?'#fff':'#aaa'; ctx.font=`${isNear?'bold ':''}11px monospace`;
+  ctx.fillText(b.label, b.x+b.w/2, b.y+b.h+14);
   if (isNear && !isEntered) {
-    ctx.fillStyle = '#4ecca3';
-    ctx.font = '9px monospace';
-    ctx.fillText('[E] Enter', b.x + b.w/2, b.y + b.h + 26);
+    ctx.fillStyle='#4ecca3'; ctx.font='9px monospace';
+    ctx.fillText(isMobile ? 'Tap green button' : '[E] Enter', b.x+b.w/2, b.y+b.h+26);
   }
 }
 
 function drawWorld(ctx, w, h) {
-  // Sky gradient
-  const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
-  skyGrad.addColorStop(0, '#0a0a1a');
-  skyGrad.addColorStop(1, '#1a1a2e');
-  ctx.fillStyle = skyGrad;
-  ctx.fillRect(0, 0, w, h);
-
-  // Stars
-  ctx.fillStyle = '#ffffff22';
-  for (let i = 0; i < 40; i++) {
-    const sx = (i * 137.5) % w;
-    const sy = (i * 83.3) % (h * 0.4);
-    ctx.fillRect(sx, sy, 1.5, 1.5);
-  }
-
-  // Ground
-  ctx.fillStyle = '#1a2a1a';
-  ctx.fillRect(0, h * 0.85, w, h * 0.15);
-
-  // Road - horizontal
-  ctx.fillStyle = '#222';
-  ctx.fillRect(0, h * 0.48, w, 40);
-  // Road dashes
-  ctx.strokeStyle = '#f9a82633';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([15, 10]);
-  ctx.beginPath(); ctx.moveTo(0, h*0.5); ctx.lineTo(w, h*0.5); ctx.stroke();
-  ctx.setLineDash([]);
-
-  // Road - vertical
-  ctx.fillStyle = '#222';
-  ctx.fillRect(w * 0.38, 0, 40, h);
-  ctx.strokeStyle = '#f9a82633';
-  ctx.setLineDash([15, 10]);
-  ctx.beginPath(); ctx.moveTo(w*0.4, 0); ctx.lineTo(w*0.4, h); ctx.stroke();
-  ctx.setLineDash([]);
-
-  // Sidewalks
-  ctx.fillStyle = '#2a2a2a';
-  ctx.fillRect(0, h*0.48 - 6, w, 6);
-  ctx.fillRect(0, h*0.48 + 40, w, 6);
-  ctx.fillRect(w*0.38 - 6, 0, 6, h);
-  ctx.fillRect(w*0.38 + 40, 0, 6, h);
-
-  // Lamp posts
-  for (let lx of [80, 300, 520, 740]) {
-    ctx.strokeStyle = '#444';
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(lx, h*0.48 - 6); ctx.lineTo(lx, h*0.48 - 40); ctx.stroke();
-    ctx.fillStyle = '#f9a82644';
-    ctx.beginPath(); ctx.arc(lx, h*0.48 - 42, 4, 0, Math.PI*2); ctx.fill();
-    // Light cone
-    ctx.fillStyle = '#f9a82808';
-    ctx.beginPath(); ctx.moveTo(lx-15, h*0.48-6); ctx.lineTo(lx, h*0.48-38); ctx.lineTo(lx+15, h*0.48-6); ctx.fill();
+  const g=ctx.createLinearGradient(0,0,0,h); g.addColorStop(0,'#0a0a1a'); g.addColorStop(1,'#1a1a2e');
+  ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+  ctx.fillStyle='#ffffff22';
+  for (let i=0;i<40;i++) { ctx.fillRect((i*137.5)%w,(i*83.3)%(h*0.4),1.5,1.5); }
+  ctx.fillStyle='#1a2a1a'; ctx.fillRect(0,h*0.85,w,h*0.15);
+  ctx.fillStyle='#222'; ctx.fillRect(0,h*0.48,w,40);
+  ctx.strokeStyle='#f9a82633'; ctx.lineWidth=1; ctx.setLineDash([15,10]);
+  ctx.beginPath(); ctx.moveTo(0,h*0.5); ctx.lineTo(w,h*0.5); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle='#222'; ctx.fillRect(w*0.38,0,40,h);
+  ctx.strokeStyle='#f9a82633'; ctx.setLineDash([15,10]);
+  ctx.beginPath(); ctx.moveTo(w*0.4,0); ctx.lineTo(w*0.4,h); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle='#2a2a2a';
+  ctx.fillRect(0,h*0.48-6,w,6); ctx.fillRect(0,h*0.48+40,w,6);
+  ctx.fillRect(w*0.38-6,0,6,h); ctx.fillRect(w*0.38+40,0,6,h);
+  for (let lx of [80,300,520,740]) {
+    ctx.strokeStyle='#444'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(lx,h*0.48-6); ctx.lineTo(lx,h*0.48-40); ctx.stroke();
+    ctx.fillStyle='#f9a82644'; ctx.beginPath(); ctx.arc(lx,h*0.48-42,4,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#f9a82808';
+    ctx.beginPath(); ctx.moveTo(lx-15,h*0.48-6); ctx.lineTo(lx,h*0.48-38); ctx.lineTo(lx+15,h*0.48-6); ctx.fill();
   }
 }
 
-// ===== MAIN COMPONENT =====
+// ===== MAIN APP =====
 function App() {
   const canvasRef = useRef(null);
   const keysRef = useRef({});
   const frameRef = useRef(0);
   const animRef = useRef(null);
+  const joystickRef = useRef({ active: false, dx: 0, dy: 0 });
+  const touchIdRef = useRef(null);
 
   const [gameState, setGameState] = useState("playing");
-  const [stats, setStats] = useState({ str: 1, int: 1, chm: 1, karma: 0 });
+  const [stats, setStats] = useState({ str:1, int:1, chm:1, karma:0 });
   const [hp, setHp] = useState(100);
   const [cash, setCash] = useState(200);
   const [day, setDay] = useState(1);
   const [slotsUsed, setSlotsUsed] = useState(0);
   const [sleptToday, setSleptToday] = useState(false);
   const [enteredBuilding, setEnteredBuilding] = useState(null);
-  const [log, setLog] = useState([{ text: "Day 1. You wake up. The world awaits. It's not excited to see you.", type: "event" }]);
+  const [log, setLog] = useState([{ text: "Day 1. You wake up. The world awaits.", type: "event" }]);
   const [inventory, setInventory] = useState([]);
   const [usedOneTime, setUsedOneTime] = useState([]);
   const [currentEvent, setCurrentEvent] = useState(null);
   const [daySummary, setDaySummary] = useState([]);
-  const [playerPos, setPlayerPos] = useState({ x: 170, y: 370 });
-  const [playerFacing, setPlayerFacing] = useState('right');
   const [nearBuilding, setNearBuilding] = useState(null);
+  const [joystickPos, setJoystickPos] = useState(null); // {bx, by, kx, ky}
+  const [isMobile, setIsMobile] = useState(false);
   const logRef = useRef(null);
   const playerRef = useRef({ x: 170, y: 370 });
   const facingRef = useRef('right');
   const movingRef = useRef(false);
+  const nearBuildingRef = useRef(null);
+  const gameStateRef = useRef("playing");
 
   const canAct = slotsUsed < 4 && (gameState === "playing" || gameState === "inBuilding");
   const hasSkateboard = inventory.includes('skateboard');
+
+  // Detect touch device
+  useEffect(() => {
+    const check = () => setIsMobile(window.matchMedia('(hover: none) and (pointer: coarse)').matches);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  // Keep gameState ref in sync
+  useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
+  useEffect(() => { nearBuildingRef.current = nearBuilding; }, [nearBuilding]);
 
   const addLog = useCallback((text, type = "") => {
     setLog(prev => [...prev, { text: `Day ${day}: ${text}`, type }]);
@@ -360,7 +313,7 @@ function App() {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [log]);
 
-  // Keyboard
+  // Keyboard input
   useEffect(() => {
     const down = (e) => { keysRef.current[e.key.toLowerCase()] = true; };
     const up = (e) => { keysRef.current[e.key.toLowerCase()] = false; };
@@ -369,26 +322,100 @@ function App() {
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
   }, []);
 
-  // Enter building with E key
+  // Enter building with E / Escape
   useEffect(() => {
     const handler = (e) => {
       if (e.key.toLowerCase() === 'e') {
-        if (enteredBuilding) {
-          setEnteredBuilding(null);
-          setGameState("playing");
-        } else if (nearBuilding && gameState === "playing" && canAct) {
-          setEnteredBuilding(nearBuilding);
-          setGameState("inBuilding");
-        }
+        if (enteredBuilding) { setEnteredBuilding(null); setGameState("playing"); }
+        else if (nearBuilding && gameState === "playing" && canAct) { setEnteredBuilding(nearBuilding); setGameState("inBuilding"); }
       }
-      if (e.key === 'Escape' && enteredBuilding) {
-        setEnteredBuilding(null);
-        setGameState("playing");
-      }
+      if (e.key === 'Escape' && enteredBuilding) { setEnteredBuilding(null); setGameState("playing"); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [nearBuilding, enteredBuilding, gameState, canAct]);
+
+  // ===== TOUCH JOYSTICK =====
+  const handleJoystickStart = useCallback((e) => {
+    if (gameStateRef.current !== "playing") return;
+    e.preventDefault();
+    const touch = e.changedTouches[0];
+    touchIdRef.current = touch.identifier;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const tx = touch.clientX - rect.left;
+    const ty = touch.clientY - rect.top;
+    joystickRef.current = { active: true, originX: tx, originY: ty, dx: 0, dy: 0 };
+    setJoystickPos({ bx: tx - 50, by: ty - 50, kx: tx - 22, ky: ty - 22 });
+  }, []);
+
+  const handleJoystickMove = useCallback((e) => {
+    e.preventDefault();
+    const js = joystickRef.current;
+    if (!js.active) return;
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const t = e.changedTouches[i];
+      if (t.identifier === touchIdRef.current) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const tx = t.clientX - rect.left;
+        const ty = t.clientY - rect.top;
+        let dx = tx - js.originX;
+        let dy = ty - js.originY;
+        const dist = Math.hypot(dx, dy);
+        const maxR = 40;
+        if (dist > maxR) { dx = dx/dist*maxR; dy = dy/dist*maxR; }
+        js.dx = dx / maxR;
+        js.dy = dy / maxR;
+        setJoystickPos({ bx: js.originX - 50, by: js.originY - 50, kx: js.originX + dx - 22, ky: js.originY + dy - 22 });
+      }
+    }
+  }, []);
+
+  const handleJoystickEnd = useCallback((e) => {
+    e.preventDefault();
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      if (e.changedTouches[i].identifier === touchIdRef.current) {
+        joystickRef.current = { active: false, dx: 0, dy: 0 };
+        touchIdRef.current = null;
+        setJoystickPos(null);
+      }
+    }
+  }, []);
+
+  // Tap to enter/exit building
+  const handleEnterToggle = useCallback(() => {
+    if (enteredBuilding) {
+      setEnteredBuilding(null);
+      setGameState("playing");
+    } else if (nearBuildingRef.current && gameStateRef.current === "playing") {
+      setEnteredBuilding(nearBuildingRef.current);
+      setGameState("inBuilding");
+    }
+  }, [enteredBuilding]);
+
+  // Tap building on canvas to walk toward it
+  const handleCanvasTap = useCallback((e) => {
+    if (gameStateRef.current !== "playing") return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = WORLD_W / rect.width;
+    const scaleY = WORLD_H / rect.height;
+    const tx = (e.clientX - rect.left) * scaleX;
+    const ty = (e.clientY - rect.top) * scaleY;
+
+    // Check if tapped on a building
+    for (const b of BUILDINGS) {
+      if (tx >= b.x - 10 && tx <= b.x + b.w + 10 && ty >= b.y - 30 && ty <= b.y + b.h + 30) {
+        // Set target to walk to
+        playerRef.current.targetX = b.x + b.w / 2;
+        playerRef.current.targetY = b.y + b.h + 35;
+        return;
+      }
+    }
+    // Tap empty space = walk there
+    playerRef.current.targetX = tx;
+    playerRef.current.targetY = ty;
+  }, []);
 
   // Game loop
   useEffect(() => {
@@ -399,61 +426,92 @@ function App() {
     const loop = () => {
       frameRef.current++;
       const keys = keysRef.current;
+      const js = joystickRef.current;
       const speed = hasSkateboard ? 3.5 : 2.5;
       let moved = false;
+      const p = playerRef.current;
 
-      // Only move when not in building / event / modal
-      if (gameState === "playing") {
-        const p = playerRef.current;
-        if (keys['w'] || keys['arrowup']) { p.y = Math.max(30, p.y - speed); moved = true; }
-        if (keys['s'] || keys['arrowdown']) { p.y = Math.min(WORLD_H - 10, p.y + speed); moved = true; }
-        if (keys['a'] || keys['arrowleft']) { p.x = Math.max(15, p.x - speed); facingRef.current = 'left'; moved = true; }
-        if (keys['d'] || keys['arrowright']) { p.x = Math.min(WORLD_W - 15, p.x + speed); facingRef.current = 'right'; moved = true; }
+      if (gameStateRef.current === "playing") {
+        // Keyboard movement
+        if (keys['w']||keys['arrowup']) { p.y=Math.max(30,p.y-speed); moved=true; p.targetX=undefined; }
+        if (keys['s']||keys['arrowdown']) { p.y=Math.min(WORLD_H-10,p.y+speed); moved=true; p.targetX=undefined; }
+        if (keys['a']||keys['arrowleft']) { p.x=Math.max(15,p.x-speed); facingRef.current='left'; moved=true; p.targetX=undefined; }
+        if (keys['d']||keys['arrowright']) { p.x=Math.min(WORLD_W-15,p.x+speed); facingRef.current='right'; moved=true; p.targetX=undefined; }
+
+        // Joystick movement
+        if (js.active && (Math.abs(js.dx)>0.15 || Math.abs(js.dy)>0.15)) {
+          p.x = Math.max(15, Math.min(WORLD_W-15, p.x + js.dx * speed));
+          p.y = Math.max(30, Math.min(WORLD_H-10, p.y + js.dy * speed));
+          if (js.dx < -0.15) facingRef.current = 'left';
+          if (js.dx > 0.15) facingRef.current = 'right';
+          moved = true;
+          p.targetX = undefined;
+        }
+
+        // Tap-to-walk target
+        if (p.targetX !== undefined && p.targetY !== undefined) {
+          const dx = p.targetX - p.x;
+          const dy = p.targetY - p.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist > 5) {
+            p.x += (dx/dist) * speed;
+            p.y += (dy/dist) * speed;
+            if (dx < -0.5) facingRef.current = 'left';
+            if (dx > 0.5) facingRef.current = 'right';
+            moved = true;
+          } else {
+            p.targetX = undefined;
+            p.targetY = undefined;
+          }
+        }
+
         movingRef.current = moved;
 
-        // Check near building
         let found = null;
         for (const b of BUILDINGS) {
-          const cx = b.x + b.w/2, cy = b.y + b.h/2;
-          const dist = Math.hypot(p.x - cx, p.y - cy);
+          const dist = Math.hypot(p.x - (b.x+b.w/2), p.y - (b.y+b.h/2));
           if (dist < 70) { found = b.id; break; }
         }
         setNearBuilding(found);
-        setPlayerPos({ x: p.x, y: p.y });
-        setPlayerFacing(facingRef.current);
       }
 
-      // Draw
-      canvas.width = WORLD_W;
-      canvas.height = WORLD_H;
+      // Resize canvas to container
+      const container = canvas.parentElement;
+      const cw = container.clientWidth - (window.innerWidth > 700 && gameStateRef.current !== "gameOver" ? 300 : 0);
+      const ch = container.clientHeight;
+      canvas.width = cw;
+      canvas.height = ch;
+
+      // Scale to fit world
+      const scale = Math.min(cw / WORLD_W, ch / WORLD_H);
+      const ox = (cw - WORLD_W * scale) / 2;
+      const oy = (ch - WORLD_H * scale) / 2;
+      ctx.save();
+      ctx.translate(ox, oy);
+      ctx.scale(scale, scale);
+
       drawWorld(ctx, WORLD_W, WORLD_H);
-
       for (const b of BUILDINGS) {
-        drawBuilding(ctx, b, nearBuilding === b.id, enteredBuilding === b.id);
+        drawBuilding(ctx, b, nearBuildingRef.current===b.id, enteredBuilding===b.id, isMobile);
       }
-
-      const p = playerRef.current;
       drawStickFigure(ctx, p.x, p.y, facingRef.current, movingRef.current ? frameRef.current : 0, hasSkateboard);
 
-      // Movement hint
       if (frameRef.current < 180) {
-        ctx.fillStyle = `rgba(255,255,255,${Math.max(0, 0.5 - frameRef.current/360)})`;
-        ctx.font = '12px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText('WASD / Arrow Keys to move | E to enter buildings', WORLD_W/2, WORLD_H - 15);
+        ctx.fillStyle = `rgba(255,255,255,${Math.max(0, 0.5-frameRef.current/360)})`;
+        ctx.font = '12px monospace'; ctx.textAlign = 'center';
+        ctx.fillText(isMobile ? 'Drag left side to move | Tap buildings' : 'WASD to move | E to enter', WORLD_W/2, WORLD_H-15);
       }
 
+      ctx.restore();
       animRef.current = requestAnimationFrame(loop);
     };
     animRef.current = requestAnimationFrame(loop);
     return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
-  }, [gameState, nearBuilding, enteredBuilding, hasSkateboard]);
+  }, [gameState, enteredBuilding, hasSkateboard, isMobile]);
 
   // Auto end day
   useEffect(() => {
-    if (slotsUsed >= 4 && (gameState === "playing" || gameState === "inBuilding")) {
-      endDay();
-    }
+    if (slotsUsed >= 4 && (gameState==="playing"||gameState==="inBuilding")) endDay();
   }, [slotsUsed]);
 
   useEffect(() => {
@@ -465,29 +523,18 @@ function App() {
     setGameState("dayEnd");
     const summary = [];
     let hpDelta = 0;
-    if (!sleptToday) { hpDelta = -15; summary.push("You didn't sleep. -15 HP."); }
-    setHp(prev => {
-      const n = Math.min(100, Math.max(0, prev + hpDelta));
-      if (n <= 0) { setGameState("gameOver"); summary.push("Game Over."); }
-      return n;
-    });
+    if (!sleptToday) { hpDelta=-15; summary.push("You didn't sleep. -15 HP."); }
+    setHp(prev => { const n=Math.min(100,Math.max(0,prev+hpDelta)); if(n<=0){setGameState("gameOver");summary.push("Game Over.");} return n; });
     setDaySummary(summary);
   }, [sleptToday]);
 
   const startNewDay = () => {
-    const nd = day + 1;
-    if (nd > 100) { setGameState("gameOver"); return; }
-    setDay(nd);
-    setSlotsUsed(0);
-    setSleptToday(false);
-    setEnteredBuilding(null);
-    setLog(prev => [...prev, { text: `--- Day ${nd} ---`, type: "event" }]);
-    if (Math.random() < 0.2) {
-      setCurrentEvent(RANDOM_EVENTS[Math.floor(Math.random() * RANDOM_EVENTS.length)]);
-      setGameState("event");
-    } else {
-      setGameState("playing");
-    }
+    const nd=day+1;
+    if (nd>100) { setGameState("gameOver"); return; }
+    setDay(nd); setSlotsUsed(0); setSleptToday(false); setEnteredBuilding(null);
+    setLog(prev=>[...prev,{text:`--- Day ${nd} ---`,type:"event"}]);
+    if (Math.random()<0.2) { setCurrentEvent(RANDOM_EVENTS[Math.floor(Math.random()*RANDOM_EVENTS.length)]); setGameState("event"); }
+    else setGameState("playing");
   };
 
   const handleEventChoice = (choice) => {
@@ -495,211 +542,132 @@ function App() {
     let ns = choice.result({...stats, hp, cash});
     let msg = choice.msg;
     if (!msg) {
-      if (choice.strCheck !== undefined) msg = stats.str >= choice.strCheck ? choice.msgPass : choice.msgFail;
-      else if (choice.chmCheck !== undefined) msg = stats.chm >= choice.chmCheck ? choice.msgPass : choice.msgFail;
-      else if (choice.randomCheck) msg = (ns.hp !== undefined && ns.hp < hp) || (ns.str !== undefined && ns.str > stats.str) ? (ns.str > stats.str ? choice.msgPass : choice.msgFail) : choice.msgPass;
+      if (choice.strCheck!==undefined) msg=stats.str>=choice.strCheck?choice.msgPass:choice.msgFail;
+      else if (choice.chmCheck!==undefined) msg=stats.chm>=choice.chmCheck?choice.msgPass:choice.msgFail;
+      else if (choice.randomCheck) msg=(ns.str!==undefined&&ns.str>stats.str)?choice.msgPass:choice.msgFail;
     }
-    const { hp: nHp, cash: nCash, ...pureStats } = ns;
-    setStats(prev => ({ ...prev, ...pureStats }));
-    if (nHp !== undefined) setHp(nHp);
-    if (nCash !== undefined) setCash(nCash);
-    addLog(msg || "Something happened.", choice.type);
-    setCurrentEvent(null);
-    setGameState("playing");
+    const {hp:nHp,cash:nCash,...pure}=ns;
+    setStats(prev=>({...prev,...pure}));
+    if(nHp!==undefined) setHp(nHp);
+    if(nCash!==undefined) setCash(nCash);
+    addLog(msg||"Something happened.",choice.type);
+    setCurrentEvent(null); setGameState("playing");
   };
 
-  const useSlot = () => setSlotsUsed(p => p + 1);
+  const useSlot = () => setSlotsUsed(p=>p+1);
 
   // ===== ACTIONS =====
-  const doSleep = () => { if (!canAct||sleptToday) return; setSleptToday(true); setHp(p=>Math.min(100,p+20)); useSlot(); addLog("Slept. +20 HP. Dreams are free.","good"); };
-  const doStudy = () => { if (!canAct||cash<10) return; const g=calcStatGain(stats.int); setCash(p=>p-10); setStats(p=>({...p,int:p.int+g})); useSlot(); addLog(`Studied. +${g} INT. -$10.`,"good"); };
-  const doGym = () => { if (!canAct) return; const g=calcStatGain(stats.str); setStats(p=>({...p,str:p.str+g})); useSlot(); addLog(`Worked out. +${g} STR.`,"good"); };
-  const doDrink = () => { if (!canAct||cash<5) return; setCash(p=>p-5); setHp(p=>Math.max(0,p-5)); const g=calcStatGain(stats.chm); setStats(p=>({...p,chm:p.chm+g})); useSlot(); addLog(`Had a drink. -5 HP, -$5, +${g} CHM.`,"event"); };
-  const doGamble = () => {
-    if (!canAct||cash<10) return;
-    const bet = Math.min(50, cash);
-    if (Math.random() < 0.35 + stats.int/500) { setCash(p=>p+bet); addLog(`Gambled $${bet}, won $${bet*2}!`,"good"); }
-    else { setCash(p=>p-bet); addLog(`Gambled $${bet} and lost.`,"bad"); }
-    useSlot();
-  };
+  const doSleep = () => { if(!canAct||sleptToday)return; setSleptToday(true); setHp(p=>Math.min(100,p+20)); useSlot(); addLog("Slept. +20 HP.","good"); };
+  const doStudy = () => { if(!canAct||cash<10)return; const g=calcStatGain(stats.int); setCash(p=>p-10); setStats(p=>({...p,int:p.int+g})); useSlot(); addLog(`Studied. +${g} INT. -$10.`,"good"); };
+  const doGym = () => { if(!canAct)return; const g=calcStatGain(stats.str); setStats(p=>({...p,str:p.str+g})); useSlot(); addLog(`Worked out. +${g} STR.`,"good"); };
+  const doDrink = () => { if(!canAct||cash<5)return; setCash(p=>p-5); setHp(p=>Math.max(0,p-5)); const g=calcStatGain(stats.chm); setStats(p=>({...p,chm:p.chm+g})); useSlot(); addLog(`Drink. -5HP -$5 +${g}CHM.`,"event"); };
+  const doGamble = () => { if(!canAct||cash<10)return; const bet=Math.min(50,cash); if(Math.random()<0.35+stats.int/500){setCash(p=>p+bet);addLog(`Won $${bet*2}!`,"good");}else{setCash(p=>p-bet);addLog(`Lost $${bet}.`,"bad");} useSlot(); };
   const doTalkNPC = () => {
-    if (!canAct) return;
-    const avail = NPC_DIALOGUES.filter(n => { if (stats.chm<n.reqChm) return false; if (n.reqKarma!==null) { if (n.reqKarma>0&&stats.karma<n.reqKarma) return false; if (n.reqKarma<0&&stats.karma>n.reqKarma) return false; } return true; });
-    if (!avail.length) { addLog("Nobody wants to talk to you.","bad"); }
-    else { const npc=avail[Math.floor(Math.random()*avail.length)]; const g=Math.random()>0.5?1:0; if(g) setStats(p=>({...p,chm:p.chm+1})); addLog(`${npc.name}: ${npc.lines[0]}${g?" (+1 CHM)":""}`,"event"); }
+    if(!canAct)return;
+    const avail=NPC_DIALOGUES.filter(n=>{if(stats.chm<n.reqChm)return false;if(n.reqKarma!==null){if(n.reqKarma>0&&stats.karma<n.reqKarma)return false;if(n.reqKarma<0&&stats.karma>n.reqKarma)return false;}return true;});
+    if(!avail.length){addLog("Nobody talks to you.","bad");}
+    else{const npc=avail[Math.floor(Math.random()*avail.length)];const g=Math.random()>0.5?1:0;if(g)setStats(p=>({...p,chm:p.chm+1}));addLog(`${npc.name}: ${npc.lines[0]}${g?" +1CHM":""}`,"event");}
     useSlot();
   };
-  const doWork = () => { if (!canAct) return; const j=getBestJob(stats); setCash(p=>p+j.pay); useSlot(); addLog(`Worked as ${j.name}. +$${j.pay}.`,"good"); };
+  const doWork = () => { if(!canAct)return; const j=getBestJob(stats); setCash(p=>p+j.pay); useSlot(); addLog(`Worked: ${j.name}. +$${j.pay}.`,"good"); };
   const doBuyItem = (item) => {
-    if (cash<item.cost) return;
-    if (item.oneTime && usedOneTime.includes(item.id)) return;
+    if(cash<item.cost)return; if(item.oneTime&&usedOneTime.includes(item.id))return;
     setCash(p=>p-item.cost);
-    if (item.consumable) { if(item.effect?.hp) setHp(p=>Math.min(100,p+item.effect.hp)); addLog(`Bought ${item.name}. ${item.desc}`,"good"); }
-    else {
-      if (!inventory.includes(item.id)) setInventory(p=>[...p,item.id]);
-      if (item.oneTime && item.effect) {
-        setUsedOneTime(p=>[...p,item.id]);
-        if(item.effect.int) setStats(p=>({...p,int:p.int+item.effect.int}));
-        if(item.effect.str) setStats(p=>({...p,str:p.str+item.effect.str}));
-        if(item.effect.chm) setStats(p=>({...p,chm:p.chm+item.effect.chm}));
-      }
-      addLog(`Bought ${item.name}.`,"good");
-    }
+    if(item.consumable){if(item.effect?.hp)setHp(p=>Math.min(100,p+item.effect.hp));addLog(`Bought ${item.name}.`,"good");}
+    else{if(!inventory.includes(item.id))setInventory(p=>[...p,item.id]);if(item.oneTime&&item.effect){setUsedOneTime(p=>[...p,item.id]);if(item.effect.int)setStats(p=>({...p,int:p.int+item.effect.int}));if(item.effect.str)setStats(p=>({...p,str:p.str+item.effect.str}));if(item.effect.chm)setStats(p=>({...p,chm:p.chm+item.effect.chm}));}addLog(`Bought ${item.name}.`,"good");}
   };
 
   // ===== SIDE PANEL =====
   const renderSidePanel = () => {
     if (gameState === "gameOver") return null;
-
     if (!enteredBuilding) {
       return (
         <div className="side-panel">
           <h3>Explore</h3>
-          <div className="desc">Walk to a building and press [E] to enter.</div>
+          <div className="desc">{isMobile ? 'Drag to move. Tap buildings.' : 'Walk to a building, press [E].'}</div>
           <div className="action-list">
-            {slotsUsed > 0 && canAct && (
-              <button className="end-day-btn" onClick={endDay}>End Day Early</button>
-            )}
-            <div style={{padding:'8px 12px', fontSize:'0.75em', color:'#555'}}>
-              <div>Inventory: {inventory.length ? inventory.map(id=>STORE_ITEMS.find(i=>i.id===id)?.name).join(', ') : 'Empty'}</div>
-              <div style={{marginTop:4}}>Job: {getBestJob(stats).name} (${getBestJob(stats).pay}/slot)</div>
+            {slotsUsed>0&&canAct&&<button className="end-day-btn" onClick={endDay}>End Day Early</button>}
+            <div style={{padding:'8px 10px',fontSize:'0.72em',color:'#555'}}>
+              <div>Items: {inventory.length?inventory.map(id=>STORE_ITEMS.find(i=>i.id===id)?.name).join(', '):'Empty'}</div>
+              <div style={{marginTop:3}}>Job: {getBestJob(stats).name} (${getBestJob(stats).pay}/slot)</div>
             </div>
           </div>
         </div>
       );
     }
-
-    const b = BUILDINGS.find(b => b.id === enteredBuilding);
-    const slotsLeft = 4 - slotsUsed;
-
+    const b=BUILDINGS.find(b=>b.id===enteredBuilding);
+    const leaveHint = isMobile ? 'Tap red button to leave.' : '[E/Esc] to leave.';
     switch (enteredBuilding) {
-      case "apartment": return (
-        <div className="side-panel">
-          <h3>{b.label}</h3>
-          <div className="desc">It's small. It smells. It's yours. [E/Esc] to leave.</div>
-          <div className="action-list">
-            <button className="act-btn" onClick={doSleep} disabled={!canAct||sleptToday}>{sleptToday?"Already Slept":"Sleep (+20 HP)"}<br/><span className="sub">1 slot</span></button>
-            <div style={{padding:'8px 12px',fontSize:'0.75em',color:'#666'}}>
-              Inventory: {inventory.length ? inventory.map(id=>STORE_ITEMS.find(i=>i.id===id)?.name).join(', ') : 'Dust and regret.'}
-            </div>
-            {slotsUsed>0 && canAct && <button className="end-day-btn" onClick={endDay}>End Day Early</button>}
-          </div>
-        </div>
-      );
-      case "university": return (
-        <div className="side-panel">
-          <h3>{b.label}</h3>
-          <div className="desc">Hallowed halls of learning. [E/Esc] to leave.</div>
-          <div className="action-list">
-            <button className="act-btn" onClick={doStudy} disabled={!canAct||cash<10}>Study (+INT, -$10)<br/><span className="sub">1 slot{cash<10?' | broke':''}</span></button>
-            {slotsUsed>0 && canAct && <button className="end-day-btn" onClick={endDay}>End Day Early</button>}
-          </div>
-        </div>
-      );
-      case "gym": return (
-        <div className="side-panel">
-          <h3>{b.label}</h3>
-          <div className="desc">Smells like ambition and body spray. [E/Esc] to leave.</div>
-          <div className="action-list">
-            <button className="act-btn" onClick={doGym} disabled={!canAct}>Work Out (+STR)<br/><span className="sub">1 slot | free</span></button>
-            {slotsUsed>0 && canAct && <button className="end-day-btn" onClick={endDay}>End Day Early</button>}
-          </div>
-        </div>
-      );
-      case "bar": return (
-        <div className="side-panel">
-          <h3>The Rusty Nail</h3>
-          <div className="desc">Every town has one. This one has peanuts. [E/Esc] to leave.</div>
-          <div className="action-list">
-            <button className="act-btn" onClick={doDrink} disabled={!canAct||cash<5}>Drink (+CHM, -5 HP, -$5)<br/><span className="sub">1 slot</span></button>
-            <button className="act-btn" onClick={doGamble} disabled={!canAct||cash<10}>Gamble (risk $, INT helps)<br/><span className="sub">1 slot</span></button>
-            <button className="act-btn" onClick={doTalkNPC} disabled={!canAct}>Talk to Someone<br/><span className="sub">1 slot</span></button>
-            {slotsUsed>0 && canAct && <button className="end-day-btn" onClick={endDay}>End Day Early</button>}
-          </div>
-        </div>
-      );
-      case "workplace": return (
-        <div className="side-panel">
-          <h3>Workplace</h3>
-          <div className="desc">Time to earn bread crumbs. [E/Esc] to leave.</div>
-          <div className="action-list">
-            <button className="act-btn" onClick={doWork} disabled={!canAct}>Work as {getBestJob(stats).name}<br/><span className="sub">1 slot | +${getBestJob(stats).pay}</span></button>
-            <div style={{padding:'4px 0'}}>
-              {JOBS.map((j,i) => {
-                const avail = getAvailableJobs(stats).includes(j);
-                const best = getBestJob(stats)===j;
-                const req = Object.entries(j.req).map(([k,v])=> k==='karma'?`K${v>0?'>=':'<='}${v}`:`${k.toUpperCase()} ${v}`).join(', ')||'None';
-                return <div key={i} className={`job-row ${avail?'':'locked'} ${best?'active':''}`}><span className="jn">{j.name}</span><span className="jr">{req}</span><span className="jp">${j.pay}</span></div>;
-              })}
-            </div>
-            {slotsUsed>0 && canAct && <button className="end-day-btn" onClick={endDay}>End Day Early</button>}
-          </div>
-        </div>
-      );
-      case "store": return (
-        <div className="side-panel">
-          <h3>Quick-E-Mart</h3>
-          <div className="desc">If we don't have it, you don't need it. [E/Esc] to leave.</div>
-          <div className="action-list">
-            {STORE_ITEMS.map(item => {
-              const used = usedOneTime.includes(item.id);
-              const canBuy = cash >= item.cost && !(item.oneTime && used);
-              return <button key={item.id} className="act-btn" onClick={()=>doBuyItem(item)} disabled={!canBuy}>{item.name} {used?'(Owned)':`($${item.cost})`}<br/><span className="sub">{item.desc}</span></button>;
-            })}
-          </div>
-        </div>
-      );
+      case "apartment": return (<div className="side-panel"><h3>{b.label}</h3><div className="desc">It's small. It smells. {leaveHint}</div><div className="action-list">
+        <button className="act-btn" onClick={doSleep} disabled={!canAct||sleptToday}>{sleptToday?"Already Slept":"Sleep (+20 HP)"}<br/><span className="sub">1 slot</span></button>
+        <div style={{padding:'8px 10px',fontSize:'0.72em',color:'#666'}}>Items: {inventory.length?inventory.map(id=>STORE_ITEMS.find(i=>i.id===id)?.name).join(', '):'Dust and regret.'}</div>
+        {slotsUsed>0&&canAct&&<button className="end-day-btn" onClick={endDay}>End Day Early</button>}
+      </div></div>);
+      case "university": return (<div className="side-panel"><h3>{b.label}</h3><div className="desc">Hallowed halls. {leaveHint}</div><div className="action-list">
+        <button className="act-btn" onClick={doStudy} disabled={!canAct||cash<10}>Study (+INT, -$10)<br/><span className="sub">1 slot{cash<10?' | broke':''}</span></button>
+        {slotsUsed>0&&canAct&&<button className="end-day-btn" onClick={endDay}>End Day Early</button>}
+      </div></div>);
+      case "gym": return (<div className="side-panel"><h3>{b.label}</h3><div className="desc">Ambition and body spray. {leaveHint}</div><div className="action-list">
+        <button className="act-btn" onClick={doGym} disabled={!canAct}>Work Out (+STR)<br/><span className="sub">1 slot | free</span></button>
+        {slotsUsed>0&&canAct&&<button className="end-day-btn" onClick={endDay}>End Day Early</button>}
+      </div></div>);
+      case "bar": return (<div className="side-panel"><h3>The Rusty Nail</h3><div className="desc">Peanuts included. {leaveHint}</div><div className="action-list">
+        <button className="act-btn" onClick={doDrink} disabled={!canAct||cash<5}>Drink (+CHM -5HP -$5)<br/><span className="sub">1 slot</span></button>
+        <button className="act-btn" onClick={doGamble} disabled={!canAct||cash<10}>Gamble (INT helps)<br/><span className="sub">1 slot</span></button>
+        <button className="act-btn" onClick={doTalkNPC} disabled={!canAct}>Talk to Someone<br/><span className="sub">1 slot</span></button>
+        {slotsUsed>0&&canAct&&<button className="end-day-btn" onClick={endDay}>End Day Early</button>}
+      </div></div>);
+      case "workplace": return (<div className="side-panel"><h3>Workplace</h3><div className="desc">Bread crumbs. {leaveHint}</div><div className="action-list">
+        <button className="act-btn" onClick={doWork} disabled={!canAct}>Work: {getBestJob(stats).name}<br/><span className="sub">1 slot | +${getBestJob(stats).pay}</span></button>
+        <div style={{padding:'4px 0'}}>{JOBS.map((j,i)=>{const av=getAvailableJobs(stats).includes(j);const best=getBestJob(stats)===j;const req=Object.entries(j.req).map(([k,v])=>k==='karma'?`K${v>0?'>=':'<='}${v}`:`${k.toUpperCase()}${v}`).join(',')||'-';return<div key={i}className={`job-row ${av?'':'locked'} ${best?'active':''}`}><span className="jn">{j.name}</span><span className="jr">{req}</span><span className="jp">${j.pay}</span></div>;})}</div>
+        {slotsUsed>0&&canAct&&<button className="end-day-btn" onClick={endDay}>End Day Early</button>}
+      </div></div>);
+      case "store": return (<div className="side-panel"><h3>Quick-E-Mart</h3><div className="desc">You don't need it. {leaveHint}</div><div className="action-list">
+        {STORE_ITEMS.map(item=>{const used=usedOneTime.includes(item.id);const ok=cash>=item.cost&&!(item.oneTime&&used);return<button key={item.id}className="act-btn"onClick={()=>doBuyItem(item)}disabled={!ok}>{item.name} {used?'(Owned)':`($${item.cost})`}<br/><span className="sub">{item.desc}</span></button>;})}
+      </div></div>);
       default: return null;
     }
   };
 
   const getKarmaAlignment = () => {
-    if (stats.karma>=20) return "Saint";
-    if (stats.karma>=10) return "Good Samaritan";
-    if (stats.karma>=3) return "Decent Human";
-    if (stats.karma>=-2) return "Morally Ambiguous";
-    if (stats.karma>=-10) return "Questionable";
-    if (stats.karma>=-20) return "Villain in Training";
-    return "Menace to Society";
+    if(stats.karma>=20)return"Saint";if(stats.karma>=10)return"Good Samaritan";if(stats.karma>=3)return"Decent Human";
+    if(stats.karma>=-2)return"Morally Ambiguous";if(stats.karma>=-10)return"Questionable";if(stats.karma>=-20)return"Villain in Training";return"Menace to Society";
   };
   const getFinalScore = () => stats.str+stats.int+stats.chm+Math.abs(stats.karma)+Math.floor(cash/10)+inventory.length*5;
 
-  // GAME OVER
   if (gameState === "gameOver") {
-    const j = getBestJob(stats);
-    return (
-      <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh'}}>
-        <div className="modal" style={{border:'2px solid #e94560',maxWidth:500}}>
-          <div className="summary">
-            <h2>{hp<=0?"You Collapsed":"Your Life Summary"}</h2>
-            <p style={{color:'#888',fontSize:'0.85em'}}>{hp<=0?"Your body gave out.":"100 days. Here's what you did."}</p>
-            <div className="fs">Days: <strong>{day}</strong></div>
-            <div className="fs">Cash: <strong style={{color:'#4ecca3'}}>${cash}</strong></div>
-            <div className="fs">STR <strong style={{color:'#fc5185'}}>{stats.str}</strong> | INT <strong style={{color:'#6c63ff'}}>{stats.int}</strong> | CHM <strong style={{color:'#f9a826'}}>{stats.chm}</strong></div>
-            <div className="fs">Karma: <strong style={{color:'#a8e6cf'}}>{stats.karma}</strong></div>
-            <div className="alignment">{getKarmaAlignment()}</div>
-            <div className="fs">Best Job: <strong>{j.name}</strong> (${j.pay}/slot)</div>
-            <div className="fs">Items: {inventory.length?inventory.map(id=>STORE_ITEMS.find(i=>i.id===id)?.name).join(', '):'None'}</div>
-            <div className="fs" style={{marginTop:12,fontSize:'1.2em'}}>Score: <strong style={{color:'#e94560'}}>{getFinalScore()}</strong></div>
-            <button className="modal-btn" onClick={()=>window.location.reload()} style={{marginTop:16,textAlign:'center'}}>Try Again</button>
-          </div>
+    const j=getBestJob(stats);
+    return (<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',height:'100dvh',padding:16}}>
+      <div className="modal" style={{border:'2px solid #e94560',maxWidth:500}}>
+        <div className="summary">
+          <h2>{hp<=0?"You Collapsed":"Your Life Summary"}</h2>
+          <p style={{color:'#888',fontSize:'0.82em'}}>{hp<=0?"Body gave out.":"100 days. Here's what you did."}</p>
+          <div className="fs">Days: <strong>{day}</strong></div>
+          <div className="fs">Cash: <strong style={{color:'#4ecca3'}}>${cash}</strong></div>
+          <div className="fs">STR <strong style={{color:'#fc5185'}}>{stats.str}</strong> | INT <strong style={{color:'#6c63ff'}}>{stats.int}</strong> | CHM <strong style={{color:'#f9a826'}}>{stats.chm}</strong></div>
+          <div className="fs">Karma: <strong style={{color:'#a8e6cf'}}>{stats.karma}</strong></div>
+          <div className="alignment">{getKarmaAlignment()}</div>
+          <div className="fs">Best Job: <strong>{j.name}</strong> (${j.pay}/slot)</div>
+          <div className="fs">Items: {inventory.length?inventory.map(id=>STORE_ITEMS.find(i=>i.id===id)?.name).join(', '):'None'}</div>
+          <div className="fs" style={{marginTop:10,fontSize:'1.2em'}}>Score: <strong style={{color:'#e94560'}}>{getFinalScore()}</strong></div>
+          <button className="modal-btn" onClick={()=>window.location.reload()} style={{marginTop:14,textAlign:'center'}}>Try Again</button>
         </div>
       </div>
-    );
+    </div>);
   }
 
   return (
-    <div style={{display:'flex',flexDirection:'column',height:'100vh'}}>
+    <div style={{display:'flex',flexDirection:'column',height:'100vh',height:'100dvh'}}>
       {/* HUD */}
       <div className="hud">
         <span className="hud-title">STICK LIFE</span>
-        <div className="hud-stat"><span className="l">Day </span><span className="v v-day">{day}/100</span></div>
-        <div className="hud-stat"><span className="l">HP </span><span className="v v-hp">{hp}</span></div>
-        <div className="hud-stat"><span className="l">$ </span><span className="v v-cash">{cash}</span></div>
-        <div className="hud-stat"><span className="l">STR </span><span className="v v-str">{stats.str}</span></div>
-        <div className="hud-stat"><span className="l">INT </span><span className="v v-int">{stats.int}</span></div>
-        <div className="hud-stat"><span className="l">CHM </span><span className="v v-chm">{stats.chm}</span></div>
-        <div className="hud-stat"><span className="l">K </span><span className="v v-karma">{stats.karma}</span></div>
+        <div className="hud-stat"><span className="l">D</span><span className="v v-day">{day}</span></div>
+        <div className="hud-stat"><span className="l">HP</span><span className="v v-hp">{hp}</span></div>
+        <div className="hud-stat"><span className="l">$</span><span className="v v-cash">{cash}</span></div>
+        <div className="hud-stat"><span className="l">S</span><span className="v v-str">{stats.str}</span></div>
+        <div className="hud-stat"><span className="l">I</span><span className="v v-int">{stats.int}</span></div>
+        <div className="hud-stat"><span className="l">C</span><span className="v v-chm">{stats.chm}</span></div>
+        <div className="hud-stat"><span className="l">K</span><span className="v v-karma">{stats.karma}</span></div>
         <div className="hud-slots">
           {[0,1,2,3].map(i=><div key={i} className={`hud-pip ${i<slotsUsed?'used':'free'}`}/>)}
         </div>
@@ -708,7 +676,38 @@ function App() {
 
       {/* Main area */}
       <div className="game-area">
-        <canvas ref={canvasRef} style={{flex:1,imageRendering:'pixelated'}} />
+        <div style={{flex:1,position:'relative',overflow:'hidden'}}>
+          <canvas ref={canvasRef} onClick={handleCanvasTap} style={{width:'100%',height:'100%'}} />
+
+          {/* Touch controls overlay */}
+          <div className="touch-controls">
+            {/* Joystick zone - left half */}
+            <div className="joystick-zone"
+              onTouchStart={handleJoystickStart}
+              onTouchMove={handleJoystickMove}
+              onTouchEnd={handleJoystickEnd}
+              onTouchCancel={handleJoystickEnd}
+            >
+              {joystickPos && <>
+                <div className="joystick-base" style={{left:joystickPos.bx,top:joystickPos.by}} />
+                <div className="joystick-knob" style={{left:joystickPos.kx,top:joystickPos.ky}} />
+              </>}
+            </div>
+
+            {/* Enter/Exit button - bottom right */}
+            <div className="enter-zone">
+              {(nearBuilding || enteredBuilding) && (
+                <button
+                  className={`enter-btn ${enteredBuilding ? 'exit' : ''}`}
+                  onClick={handleEnterToggle}
+                  onTouchEnd={(e) => { e.preventDefault(); handleEnterToggle(); }}
+                >
+                  {enteredBuilding ? 'EXIT' : 'GO IN'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
         {renderSidePanel()}
       </div>
 
@@ -718,26 +717,23 @@ function App() {
       </div>
 
       {/* Event modal */}
-      {gameState==="event" && currentEvent && (
+      {gameState==="event"&&currentEvent&&(
         <div className="modal-overlay">
           <div className="modal">
             <h2>Random Event</h2>
             <p>{currentEvent.text}</p>
-            {currentEvent.choices.map((c,i)=>{
-              const ok = c.check(stats);
-              return <button key={i} className="modal-btn" disabled={!ok} onClick={()=>handleEventChoice(c)}>{c.label}{!ok?' (Requirements not met)':''}</button>;
-            })}
+            {currentEvent.choices.map((c,i)=>{const ok=c.check(stats);return<button key={i}className="modal-btn"disabled={!ok}onClick={()=>handleEventChoice(c)}>{c.label}{!ok?' (Locked)':''}</button>;})}
           </div>
         </div>
       )}
 
-      {/* Day end modal */}
-      {gameState==="dayEnd" && (
+      {/* Day end */}
+      {gameState==="dayEnd"&&(
         <div className="modal-overlay">
           <div className="modal">
             <h2>Day {day} Ends</h2>
-            {daySummary.length ? daySummary.map((s,i)=><p key={i}>{s}</p>) : <p>Another day survived. The bare minimum.</p>}
-            <button className="modal-btn" onClick={startNewDay}>{day>=100?"See Final Results":`Start Day ${day+1}`}</button>
+            {daySummary.length?daySummary.map((s,i)=><p key={i}>{s}</p>):<p>Another day survived.</p>}
+            <button className="modal-btn" onClick={startNewDay}>{day>=100?"Final Results":`Day ${day+1}`}</button>
           </div>
         </div>
       )}
