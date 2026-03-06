@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stick Life</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #111; color: #ddd; font-family: 'Courier New', monospace; min-height: 100vh; }
+#root { max-width: 900px; margin: 0 auto; padding: 16px; }
+
+.header { background: #1a1a2e; border: 1px solid #333; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+.header h1 { font-size: 1.4em; color: #e94560; margin-bottom: 8px; text-align: center; }
+.stats-row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.stat { background: #16213e; padding: 6px 12px; border-radius: 4px; font-size: 0.85em; }
+.stat .label { color: #888; }
+.stat .value { color: #0f3460; font-weight: bold; }
+.stat .value.hp { color: #e94560; }
+.stat .value.cash { color: #4ecca3; }
+.stat .value.str { color: #fc5185; }
+.stat .value.int { color: #6c63ff; }
+.stat .value.chm { color: #f9a826; }
+.stat .value.karma { color: #a8e6cf; }
+.stat .value.day { color: #ddd; }
+
+.slots-bar { display: flex; gap: 6px; justify-content: center; margin-top: 8px; }
+.slot-pip { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #555; }
+.slot-pip.used { background: #e94560; border-color: #e94560; }
+.slot-pip.available { background: #4ecca3; border-color: #4ecca3; }
+
+.locations { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.loc-btn { background: #16213e; border: 2px solid #333; color: #ddd; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 0.9em; transition: all 0.15s; }
+.loc-btn:hover { border-color: #e94560; background: #1a1a2e; }
+.loc-btn.active { border-color: #e94560; background: #1a1a2e; }
+.loc-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.panel { background: #1a1a2e; border: 1px solid #333; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+.panel h2 { color: #e94560; font-size: 1.1em; margin-bottom: 10px; }
+
+.action-btn { background: #0f3460; border: 1px solid #444; color: #ddd; padding: 8px 14px; border-radius: 4px; cursor: pointer; font-family: inherit; font-size: 0.85em; margin: 4px; transition: all 0.15s; }
+.action-btn:hover { background: #e94560; }
+.action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.log { background: #0a0a1a; border: 1px solid #222; border-radius: 8px; padding: 12px; max-height: 250px; overflow-y: auto; }
+.log-entry { padding: 3px 0; font-size: 0.8em; color: #999; border-bottom: 1px solid #1a1a1a; }
+.log-entry.event { color: #f9a826; }
+.log-entry.good { color: #4ecca3; }
+.log-entry.bad { color: #e94560; }
+
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 100; }
+.modal { background: #1a1a2e; border: 2px solid #e94560; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; }
+.modal h2 { color: #e94560; margin-bottom: 12px; }
+.modal p { margin-bottom: 10px; font-size: 0.9em; line-height: 1.4; }
+.modal .action-btn { margin-top: 8px; }
+
+.summary { text-align: center; }
+.summary h2 { font-size: 1.6em; margin-bottom: 16px; }
+.summary .final-stat { font-size: 1em; margin: 6px 0; }
+.summary .alignment { font-size: 1.2em; color: #f9a826; margin: 12px 0; }
+
+.item-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.item-tag { background: #0f3460; padding: 4px 8px; border-radius: 4px; font-size: 0.75em; }
+
+.job-tier { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #222; font-size: 0.85em; }
+.job-tier .job-name { color: #ddd; }
+.job-tier .job-req { color: #888; font-size: 0.8em; }
+.job-tier .job-pay { color: #4ecca3; }
+.job-tier.locked { opacity: 0.4; }
+.job-tier.current { background: #0f3460; padding: 6px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useCallback, useRef, useEffect } = React;
+
+const JOBS = [
+  { name: "Panhandler", pay: 5, req: {}, desc: "You hold a sign. It says 'anything helps'. It doesn't." },
+  { name: "Dishwasher", pay: 12, req: { int: 8 }, desc: "Endless plates. Sisyphus had it easier." },
+  { name: "Convenience Store Clerk", pay: 20, req: { int: 15 }, desc: "You guard snacks for minimum wage." },
+  { name: "Bouncer", pay: 40, req: { str: 30 }, desc: "You decide who's worthy of overpriced drinks." },
+  { name: "Personal Trainer", pay: 60, req: { str: 50, chm: 20 }, desc: "You yell at people and they thank you." },
+  { name: "Marketing Manager", pay: 90, req: { int: 45, chm: 35 }, desc: "You convince people they need things they don't." },
+  { name: "Software Engineer", pay: 120, req: { int: 60 }, desc: "You argue about tabs vs spaces. Sometimes you code." },
+  { name: "Executive", pay: 200, req: { int: 80, chm: 50 }, desc: "You attend meetings about meetings." },
+  { name: "Crime Boss", pay: 250, req: { str: 60, chm: 40, karma: -20 }, desc: "You've made it. Morally questionable, but you've made it." },
+  { name: "Philanthropist CEO", pay: 300, req: { int: 90, chm: 70, karma: 20 }, desc: "You save the world and profit from it. Somehow ethical." },
+];
+
+const STORE_ITEMS = [
+  { id: "energy_drink", name: "Energy Drink", cost: 5, desc: "Restore 10 HP. Tastes like battery acid.", consumable: true, effect: { hp: 10 } },
+  { id: "skateboard", name: "Skateboard", cost: 15, desc: "Makes you feel 12 again. Does nothing useful.", consumable: false },
+  { id: "laptop", name: "Laptop", cost: 200, desc: "+5 INT. Now you can pretend to be productive.", consumable: false, effect: { int: 5 }, oneTime: true },
+  { id: "dumbbells", name: "Dumbbells", cost: 150, desc: "+5 STR. Home gym energy.", consumable: false, effect: { str: 5 }, oneTime: true },
+  { id: "nice_clothes", name: "Nice Clothes", cost: 100, desc: "+5 CHM. Dress for the job you want, not the one you have.", consumable: false, effect: { chm: 5 }, oneTime: true },
+  { id: "alarm_clock", name: "Alarm Clock", cost: 30, desc: "Prevents oversleeping events. Annoying but useful.", consumable: false },
+];
+
+const RANDOM_EVENTS = [
+  {
+    text: "You see someone getting mugged in an alley.",
+    choices: [
+      { label: "Intervene (STR 20)", check: (s) => s.str >= 20, result: (s) => ({ ...s, karma: s.karma + 3 }), msg: "You step in and handle it. The victim thanks you profusely.", msgFail: null, type: "good" },
+      { label: "Walk away", check: () => true, result: (s) => ({ ...s, karma: s.karma - 2 }), msg: "You keep walking. Not your problem, right?", type: "bad" },
+    ]
+  },
+  {
+    text: "You find a wallet on the ground. There's $50 inside and an ID.",
+    choices: [
+      { label: "Keep the cash", check: () => true, result: (s) => ({ ...s, cash: s.cash + 50, karma: s.karma - 3 }), msg: "Fifty bucks richer. Your conscience is fifty bucks poorer.", type: "bad" },
+      { label: "Return it", check: () => true, result: (s) => ({ ...s, karma: s.karma + 3, chm: s.chm + 1 }), msg: "The owner is grateful. You feel warm inside. That's the serotonin.", type: "good" },
+    ]
+  },
+  {
+    text: "A bar fight breaks out near you!",
+    choices: [
+      { label: "Dodge (STR check)", check: () => true, result: (s) => s.str >= 15 ? { ...s, str: s.str + 1 } : { ...s, hp: s.hp - 10 }, msg: null, msgPass: "Your reflexes kick in. You dodge a flying barstool. +1 STR.", msgFail: "A chair hits you. -10 HP. Should've ducked.", strCheck: 15, type: "event" },
+    ]
+  },
+  {
+    text: "A shady guy offers you 'performance enhancers' for $30.",
+    choices: [
+      { label: "Buy them", check: (s) => s.cash >= 30, result: (s) => Math.random() > 0.4 ? { ...s, cash: s.cash - 30, str: s.str + 3 } : { ...s, cash: s.cash - 30, hp: s.hp - 15 }, msg: null, msgPass: "They actually work! +3 STR. Don't ask what's in them.", msgFail: "They were just sugar pills with side effects. -15 HP.", randomCheck: 0.4, type: "event" },
+      { label: "Decline", check: () => true, result: (s) => s, msg: "Wise choice. Probably.", type: "event" },
+    ]
+  },
+  {
+    text: "An old woman asks for help carrying groceries.",
+    choices: [
+      { label: "Help her", check: () => true, result: (s) => ({ ...s, karma: s.karma + 2, chm: s.chm + 1 }), msg: "She gives you a cookie and a life lesson. +2 Karma, +1 CHM.", type: "good" },
+      { label: "Ignore her", check: () => true, result: (s) => ({ ...s, karma: s.karma - 1 }), msg: "She calls you a 'rotten youth'. Fair.", type: "bad" },
+    ]
+  },
+  {
+    text: "You spot a $20 bill on the street... but someone else is eyeing it too.",
+    choices: [
+      { label: "Grab it (CHM check)", check: () => true, result: (s) => s.chm >= 10 ? { ...s, cash: s.cash + 20 } : { ...s, karma: s.karma - 1 }, msg: null, msgPass: "You smooth-talk them into letting you have it. +$20.", msgFail: "They get there first. You look foolish.", chmCheck: 10, type: "event" },
+      { label: "Let it go", check: () => true, result: (s) => ({ ...s, karma: s.karma + 1 }), msg: "You walk on, dignified. Broke, but dignified.", type: "good" },
+    ]
+  },
+  {
+    text: "A street musician is playing terribly. Like, really terribly.",
+    choices: [
+      { label: "Tip them $5", check: (s) => s.cash >= 5, result: (s) => ({ ...s, cash: s.cash - 5, karma: s.karma + 1 }), msg: "They smile. Still sounds awful. But kindness isn't about talent.", type: "good" },
+      { label: "Tell them to stop", check: () => true, result: (s) => ({ ...s, karma: s.karma - 1, chm: s.chm > 1 ? s.chm - 1 : s.chm }), msg: "They look devastated. You monster.", type: "bad" },
+    ]
+  },
+  {
+    text: "Someone left their laptop unattended at the library.",
+    choices: [
+      { label: "Guard it", check: () => true, result: (s) => ({ ...s, karma: s.karma + 2 }), msg: "The owner returns and thanks you. Good deed for the day.", type: "good" },
+      { label: "Steal it", check: () => true, result: (s) => ({ ...s, cash: s.cash + 80, karma: s.karma - 5 }), msg: "You fence it for $80. Your soul feels heavier.", type: "bad" },
+    ]
+  },
+];
+
+const NPC_DIALOGUES = [
+  { name: "Bartender Dave", reqChm: 0, reqKarma: null, lines: ["'First one's on the house. Everything after that is on you.'", "'You look like you've got a story. They all do.'"] },
+  { name: "Regular Pete", reqChm: 10, reqKarma: null, lines: ["'I've been coming here since before they changed the jukebox. Tragedy.'", "'You want advice? Don't take advice from guys in bars.'"] },
+  { name: "Mysterious Woman", reqChm: 25, reqKarma: null, lines: ["'You're more interesting than the usual crowd.'", "'Everyone here is running from something. What's your something?'"] },
+  { name: "Shady Tony", reqChm: 5, reqKarma: -10, lines: ["'You've got that look. The look of someone who gets things done, no questions asked.'", "'I know people. And those people know I know you. That's worth something.'"] },
+  { name: "Father Marcus", reqChm: 15, reqKarma: 15, lines: ["'It's good to see someone with a kind heart in a place like this.'", "'There's a charity gala next month. Someone like you should come.'"] },
+];
+
+function calcStatGain(currentStat) {
+  if (currentStat < 100) return Math.max(1, Math.floor(3 - currentStat / 50));
+  return 1;
+}
+
+function getAvailableJobs(stats) {
+  return JOBS.filter(j => {
+    for (const [key, val] of Object.entries(j.req)) {
+      if (key === 'karma') {
+        if (val > 0 && stats.karma < val) return false;
+        if (val < 0 && stats.karma > val) return false;
+      } else {
+        if ((stats[key] || 0) < val) return false;
+      }
+    }
+    return true;
+  });
+}
+
+function getBestJob(stats) {
+  const available = getAvailableJobs(stats);
+  return available[available.length - 1];
+}
+
+function App() {
+  const [gameState, setGameState] = useState("playing"); // playing, event, dayEnd, gameOver
+  const [stats, setStats] = useState({ str: 1, int: 1, chm: 1, karma: 0 });
+  const [hp, setHp] = useState(100);
+  const [cash, setCash] = useState(200);
+  const [day, setDay] = useState(1);
+  const [slotsUsed, setSlotsUsed] = useState(0);
+  const [sleptToday, setSleptToday] = useState(false);
+  const [location, setLocation] = useState(null);
+  const [log, setLog] = useState([{ text: "Day 1 begins. You wake up in your crummy apartment. The world awaits. It's not excited to see you.", type: "event" }]);
+  const [inventory, setInventory] = useState([]);
+  const [usedOneTime, setUsedOneTime] = useState([]);
+  const [currentEvent, setCurrentEvent] = useState(null);
+  const [daySummary, setDaySummary] = useState([]);
+  const logRef = useRef(null);
+
+  useEffect(() => {
+    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
+  }, [log]);
+
+  const addLog = useCallback((text, type = "") => {
+    setLog(prev => [...prev, { text: `Day ${day}: ${text}`, type }]);
+  }, [day]);
+
+  const canAct = slotsUsed < 4 && gameState === "playing";
+
+  const useSlot = useCallback(() => {
+    setSlotsUsed(prev => prev + 1);
+  }, []);
+
+  const endDay = useCallback(() => {
+    setGameState("dayEnd");
+    const summary = [];
+    let hpChange = 0;
+
+    if (!sleptToday) {
+      hpChange = -15;
+      summary.push("You didn't sleep. Your body protests. -15 HP.");
+    }
+
+    setHp(prev => {
+      const newHp = Math.min(100, Math.max(0, prev + hpChange));
+      if (newHp <= 0) {
+        setGameState("gameOver");
+        summary.push("Your body finally gives out. Game Over.");
+      }
+      return newHp;
+    });
+
+    setDaySummary(summary);
+  }, [sleptToday]);
+
+  // Check if day should end
+  useEffect(() => {
+    if (slotsUsed >= 4 && gameState === "playing") {
+      endDay();
+    }
+  }, [slotsUsed, gameState, endDay]);
+
+  // Check for game over
+  useEffect(() => {
+    if (hp <= 0 && gameState !== "gameOver") {
+      setGameState("gameOver");
+    }
+  }, [hp, gameState]);
+
+  const startNewDay = () => {
+    const newDay = day + 1;
+    if (newDay > 100) {
+      setGameState("gameOver");
+      return;
+    }
+    setDay(newDay);
+    setSlotsUsed(0);
+    setSleptToday(false);
+    setLocation(null);
+    setLog(prev => [...prev, { text: `--- Day ${newDay} ---`, type: "event" }]);
+
+    // Random event check (20% chance)
+    if (Math.random() < 0.2) {
+      const evt = RANDOM_EVENTS[Math.floor(Math.random() * RANDOM_EVENTS.length)];
+      setCurrentEvent(evt);
+      setGameState("event");
+    } else {
+      setGameState("playing");
+    }
+  };
+
+  const handleEventChoice = (choice) => {
+    if (!choice.check(stats)) return;
+
+    let newStats = choice.result(stats);
+    let msg = choice.msg;
+
+    if (!msg) {
+      if (choice.strCheck !== undefined) {
+        msg = stats.str >= choice.strCheck ? choice.msgPass : choice.msgFail;
+      } else if (choice.chmCheck !== undefined) {
+        msg = stats.chm >= choice.chmCheck ? choice.msgPass : choice.msgFail;
+      } else if (choice.randomCheck !== undefined) {
+        // Re-evaluate since result already randomized
+        msg = (newStats.hp < hp || (newStats.cash < cash && !newStats.str)) ? choice.msgFail : choice.msgPass;
+        if (!msg) msg = choice.msgPass || choice.msgFail;
+      }
+    }
+
+    setStats(newStats);
+    if (newStats.hp !== undefined) setHp(newStats.hp);
+    if (newStats.cash !== undefined) setCash(newStats.cash);
+    setHp(prev => newStats.hp !== undefined && newStats.hp !== stats.hp ? newStats.hp : prev);
+    setCash(prev => newStats.cash !== undefined && newStats.cash !== stats.cash ? newStats.cash : prev);
+
+    // Separate hp/cash from stats
+    const { hp: newHp, cash: newCash, ...pureStats } = newStats;
+    setStats(pureStats.str !== undefined ? pureStats : stats);
+    if (newHp !== undefined) setHp(newHp);
+    if (newCash !== undefined) setCash(newCash);
+
+    addLog(msg, choice.type);
+    setCurrentEvent(null);
+    setGameState("playing");
+  };
+
+  // --- ACTIONS ---
+  const doSleep = () => {
+    if (!canAct || sleptToday) return;
+    setSleptToday(true);
+    setHp(prev => Math.min(100, prev + 20));
+    useSlot();
+    addLog("You sleep. HP restored. Dreams are free, at least.", "good");
+  };
+
+  const doStudy = () => {
+    if (!canAct || cash < 10) return;
+    const gain = calcStatGain(stats.int);
+    setCash(prev => prev - 10);
+    setStats(prev => ({ ...prev, int: prev.int + gain }));
+    useSlot();
+    addLog(`You studied at the university. +${gain} INT. -$10. Knowledge is expensive.`, "good");
+  };
+
+  const doGym = () => {
+    if (!canAct) return;
+    const gain = calcStatGain(stats.str);
+    setStats(prev => ({ ...prev, str: prev.str + gain }));
+    useSlot();
+    addLog(`You worked out at the gym. +${gain} STR. Everything hurts. That means it's working, probably.`, "good");
+  };
+
+  const doDrink = () => {
+    if (!canAct || cash < 5) return;
+    setCash(prev => prev - 5);
+    setHp(prev => Math.max(0, prev - 5));
+    const chmGain = calcStatGain(stats.chm);
+    setStats(prev => ({ ...prev, chm: prev.chm + chmGain }));
+    useSlot();
+    addLog(`You had a drink. -5 HP, -$5, +${chmGain} CHM. Liquid courage.`, "event");
+  };
+
+  const doGamble = () => {
+    if (!canAct || cash < 10) return;
+    const bet = Math.min(50, cash);
+    const winChance = 0.35 + (stats.int / 500); // INT improves odds slightly
+    const won = Math.random() < winChance;
+    if (won) {
+      const winnings = bet * 2;
+      setCash(prev => prev + bet);
+      addLog(`You gambled $${bet} and won $${winnings}! The house hates you.`, "good");
+    } else {
+      setCash(prev => prev - bet);
+      addLog(`You gambled $${bet} and lost. The house always wins. Always.`, "bad");
+    }
+    useSlot();
+  };
+
+  const doTalkNPC = () => {
+    if (!canAct) return;
+    const available = NPC_DIALOGUES.filter(n => {
+      if (stats.chm < n.reqChm) return false;
+      if (n.reqKarma !== null) {
+        if (n.reqKarma > 0 && stats.karma < n.reqKarma) return false;
+        if (n.reqKarma < 0 && stats.karma > n.reqKarma) return false;
+      }
+      return true;
+    });
+    if (available.length === 0) {
+      addLog("Nobody wants to talk to you. Work on that charm.", "bad");
+    } else {
+      const npc = available[Math.floor(Math.random() * available.length)];
+      const line = npc.lines[Math.floor(Math.random() * npc.lines.length)];
+      const chmGain = Math.random() > 0.5 ? 1 : 0;
+      if (chmGain) setStats(prev => ({ ...prev, chm: prev.chm + 1 }));
+      addLog(`${npc.name}: ${line}${chmGain ? " (+1 CHM)" : ""}`, "event");
+    }
+    useSlot();
+  };
+
+  const doWork = () => {
+    if (!canAct) return;
+    const best = getBestJob(stats);
+    setCash(prev => prev + best.pay);
+    useSlot();
+    addLog(`You worked as a ${best.name}. +$${best.pay}. ${best.desc}`, "good");
+  };
+
+  const doBuyItem = (item) => {
+    if (cash < item.cost) return;
+    if (item.oneTime && usedOneTime.includes(item.id)) return;
+
+    setCash(prev => prev - item.cost);
+
+    if (item.consumable) {
+      if (item.effect?.hp) setHp(prev => Math.min(100, prev + item.effect.hp));
+      addLog(`Bought ${item.name}. ${item.desc}`, "good");
+    } else {
+      if (!inventory.includes(item.id)) {
+        setInventory(prev => [...prev, item.id]);
+      }
+      if (item.oneTime && item.effect) {
+        setUsedOneTime(prev => [...prev, item.id]);
+        if (item.effect.int) setStats(prev => ({ ...prev, int: prev.int + item.effect.int }));
+        if (item.effect.str) setStats(prev => ({ ...prev, str: prev.str + item.effect.str }));
+        if (item.effect.chm) setStats(prev => ({ ...prev, chm: prev.chm + item.effect.chm }));
+        addLog(`Bought ${item.name}. ${item.desc}`, "good");
+      } else {
+        addLog(`Bought ${item.name}. ${item.desc}`, "good");
+      }
+    }
+  };
+
+  // --- RENDER ---
+  const renderLocation = () => {
+    if (!location || gameState !== "playing") return null;
+
+    switch (location) {
+      case "apartment":
+        return (
+          <div className="panel">
+            <h2>Your Apartment</h2>
+            <p style={{ fontSize: "0.85em", color: "#888", marginBottom: 10 }}>It's small. It smells. It's yours.</p>
+            <button className="action-btn" onClick={doSleep} disabled={!canAct || sleptToday}>
+              {sleptToday ? "Already Slept" : "Sleep (1 slot, +20 HP)"}
+            </button>
+            <div style={{ marginTop: 12, fontSize: "0.85em" }}>
+              <strong>Inventory:</strong>
+              {inventory.length === 0 ? <span style={{ color: "#666" }}> Nothing. Just dust and regret.</span> : (
+                <div className="item-list">
+                  {inventory.map(id => {
+                    const item = STORE_ITEMS.find(i => i.id === id);
+                    return <span key={id} className="item-tag">{item?.name}</span>;
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
+      case "university":
+        return (
+          <div className="panel">
+            <h2>University</h2>
+            <p style={{ fontSize: "0.85em", color: "#888", marginBottom: 10 }}>Hallowed halls of learning. Also, overpriced coffee.</p>
+            <button className="action-btn" onClick={doStudy} disabled={!canAct || cash < 10}>
+              Study (1 slot, -$10, +INT)
+            </button>
+            {cash < 10 && <p style={{ fontSize: "0.8em", color: "#e94560", marginTop: 6 }}>Can't afford tuition. Ironic.</p>}
+          </div>
+        );
+
+      case "gym":
+        return (
+          <div className="panel">
+            <h2>Gym</h2>
+            <p style={{ fontSize: "0.85em", color: "#888", marginBottom: 10 }}>It smells like ambition and body spray.</p>
+            <button className="action-btn" onClick={doGym} disabled={!canAct}>
+              Work Out (1 slot, +STR)
+            </button>
+          </div>
+        );
+
+      case "bar":
+        return (
+          <div className="panel">
+            <h2>The Rusty Nail</h2>
+            <p style={{ fontSize: "0.85em", color: "#888", marginBottom: 10 }}>Every town has one. This one has peanuts.</p>
+            <button className="action-btn" onClick={doDrink} disabled={!canAct || cash < 5}>
+              Drink ($5, -5 HP, +CHM)
+            </button>
+            <button className="action-btn" onClick={doGamble} disabled={!canAct || cash < 10}>
+              Gamble (risk $, INT helps odds)
+            </button>
+            <button className="action-btn" onClick={doTalkNPC} disabled={!canAct}>
+              Talk to Someone
+            </button>
+          </div>
+        );
+
+      case "workplace":
+        return (
+          <div className="panel">
+            <h2>Workplace</h2>
+            <p style={{ fontSize: "0.85em", color: "#888", marginBottom: 10 }}>Time to earn that bread. Or at least bread crumbs.</p>
+            <button className="action-btn" onClick={doWork} disabled={!canAct}>
+              Work as {getBestJob(stats).name} (+${getBestJob(stats).pay})
+            </button>
+            <div style={{ marginTop: 12 }}>
+              <strong style={{ fontSize: "0.85em" }}>Job Tiers:</strong>
+              {JOBS.map((job, i) => {
+                const available = getAvailableJobs(stats).includes(job);
+                const isBest = getBestJob(stats) === job;
+                const reqStr = Object.entries(job.req).map(([k, v]) => {
+                  if (k === 'karma') return `Karma ${v > 0 ? '>=' : '<='} ${v}`;
+                  return `${k.toUpperCase()} ${v}`;
+                }).join(", ") || "None";
+                return (
+                  <div key={i} className={`job-tier ${available ? "" : "locked"} ${isBest ? "current" : ""}`}>
+                    <span className="job-name">{job.name}</span>
+                    <span className="job-req">{reqStr}</span>
+                    <span className="job-pay">${job.pay}/slot</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+
+      case "store":
+        return (
+          <div className="panel">
+            <h2>Quick-E-Mart</h2>
+            <p style={{ fontSize: "0.85em", color: "#888", marginBottom: 10 }}>If we don't have it, you don't need it. You probably don't need what we have either.</p>
+            {STORE_ITEMS.map(item => {
+              const owned = inventory.includes(item.id);
+              const used = usedOneTime.includes(item.id);
+              const canBuy = cash >= item.cost && !(item.oneTime && used);
+              return (
+                <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid #222", fontSize: "0.85em" }}>
+                  <div>
+                    <span style={{ color: "#ddd" }}>{item.name}</span>
+                    <span style={{ color: "#666", marginLeft: 8, fontSize: "0.8em" }}>{item.desc}</span>
+                  </div>
+                  <button className="action-btn" onClick={() => doBuyItem(item)} disabled={!canBuy} style={{ whiteSpace: "nowrap" }}>
+                    {used ? "Owned" : `$${item.cost}`}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  const getKarmaAlignment = () => {
+    if (stats.karma >= 20) return "Saint - Beacon of Virtue";
+    if (stats.karma >= 10) return "Good Samaritan";
+    if (stats.karma >= 3) return "Decent Human Being";
+    if (stats.karma >= -2) return "Morally Ambiguous";
+    if (stats.karma >= -10) return "Questionable Character";
+    if (stats.karma >= -20) return "Villain in Training";
+    return "Menace to Society";
+  };
+
+  const getFinalScore = () => {
+    return stats.str + stats.int + stats.chm + Math.abs(stats.karma) + Math.floor(cash / 10) + inventory.length * 5;
+  };
+
+  // --- GAME OVER SCREEN ---
+  if (gameState === "gameOver") {
+    const bestJob = getBestJob(stats);
+    return (
+      <div>
+        <div className="header">
+          <h1>STICK LIFE</h1>
+        </div>
+        <div className="panel summary">
+          <h2>{hp <= 0 ? "You Collapsed" : "Your Life Summary"}</h2>
+          <p style={{ color: "#888", marginBottom: 16 }}>
+            {hp <= 0
+              ? "Your body finally gave out. Maybe next time, take care of yourself."
+              : `100 days. That's all you get. Here's what you did with them.`}
+          </p>
+          <div className="final-stat">Days Survived: <strong>{day}</strong></div>
+          <div className="final-stat">Final Cash: <strong style={{ color: "#4ecca3" }}>${cash}</strong></div>
+          <div className="final-stat">STR: <strong style={{ color: "#fc5185" }}>{stats.str}</strong> | INT: <strong style={{ color: "#6c63ff" }}>{stats.int}</strong> | CHM: <strong style={{ color: "#f9a826" }}>{stats.chm}</strong></div>
+          <div className="final-stat">Karma: <strong style={{ color: "#a8e6cf" }}>{stats.karma}</strong></div>
+          <div className="alignment">{getKarmaAlignment()}</div>
+          <div className="final-stat">Highest Job: <strong>{bestJob.name}</strong> (${bestJob.pay}/slot)</div>
+          <div className="final-stat">Items: {inventory.length > 0 ? inventory.map(id => STORE_ITEMS.find(i => i.id === id)?.name).join(", ") : "None"}</div>
+          <div className="final-stat" style={{ marginTop: 16, fontSize: "1.2em" }}>
+            Final Score: <strong style={{ color: "#e94560" }}>{getFinalScore()}</strong>
+          </div>
+          <button className="action-btn" style={{ marginTop: 20, fontSize: "1em", padding: "12px 24px" }} onClick={() => window.location.reload()}>
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // --- EVENT MODAL ---
+  const renderEventModal = () => {
+    if (gameState !== "event" || !currentEvent) return null;
+    return (
+      <div className="modal-overlay">
+        <div className="modal">
+          <h2>Random Event</h2>
+          <p>{currentEvent.text}</p>
+          {currentEvent.choices.map((choice, i) => {
+            const canChoose = choice.check(stats);
+            return (
+              <button key={i} className="action-btn" disabled={!canChoose} onClick={() => handleEventChoice(choice)} style={{ display: "block", width: "100%" }}>
+                {choice.label} {!canChoose && "(Requirements not met)"}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // --- DAY END MODAL ---
+  const renderDayEnd = () => {
+    if (gameState !== "dayEnd") return null;
+    return (
+      <div className="modal-overlay">
+        <div className="modal">
+          <h2>Day {day} Ends</h2>
+          {daySummary.length > 0 ? daySummary.map((s, i) => <p key={i}>{s}</p>) : <p>Another day survived. Congratulations, that's the bare minimum.</p>}
+          <button className="action-btn" onClick={startNewDay} style={{ marginTop: 12 }}>
+            {day >= 100 ? "See Final Results" : `Start Day ${day + 1}`}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const locations = [
+    { id: "apartment", label: "Apartment" },
+    { id: "university", label: "University" },
+    { id: "gym", label: "Gym" },
+    { id: "bar", label: "Bar" },
+    { id: "workplace", label: "Workplace" },
+    { id: "store", label: "Store" },
+  ];
+
+  return (
+    <div>
+      <div className="header">
+        <h1>STICK LIFE</h1>
+        <div className="stats-row">
+          <div className="stat"><span className="label">Day </span><span className="value day">{day}/100</span></div>
+          <div className="stat"><span className="label">HP </span><span className="value hp">{hp}/100</span></div>
+          <div className="stat"><span className="label">Cash </span><span className="value cash">${cash}</span></div>
+          <div className="stat"><span className="label">STR </span><span className="value str">{stats.str}</span></div>
+          <div className="stat"><span className="label">INT </span><span className="value int">{stats.int}</span></div>
+          <div className="stat"><span className="label">CHM </span><span className="value chm">{stats.chm}</span></div>
+          <div className="stat"><span className="label">Karma </span><span className="value karma">{stats.karma}</span></div>
+        </div>
+        <div className="slots-bar">
+          {[0, 1, 2, 3].map(i => (
+            <div key={i} className={`slot-pip ${i < slotsUsed ? "used" : "available"}`} title={i < slotsUsed ? "Used" : "Available"} />
+          ))}
+          <span style={{ fontSize: "0.8em", color: "#888", marginLeft: 8 }}>{4 - slotsUsed} slots left</span>
+        </div>
+      </div>
+
+      <div className="locations">
+        {locations.map(loc => (
+          <button key={loc.id} className={`loc-btn ${location === loc.id ? "active" : ""}`} onClick={() => setLocation(loc.id)} disabled={!canAct}>
+            {loc.label}
+          </button>
+        ))}
+        {canAct && slotsUsed > 0 && (
+          <button className="loc-btn" onClick={endDay} style={{ borderColor: "#f9a826", color: "#f9a826" }}>
+            End Day Early
+          </button>
+        )}
+      </div>
+
+      {renderLocation()}
+
+      <div className="log" ref={logRef}>
+        {log.map((entry, i) => (
+          <div key={i} className={`log-entry ${entry.type}`}>{entry.text}</div>
+        ))}
+      </div>
+
+      {renderEventModal()}
+      {renderDayEnd()}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
