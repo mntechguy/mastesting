@@ -2,660 +2,688 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Stick Life</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
+:root{--bg:#0a0a0f;--card:#1a1a2e;--border:#2a2a4a;--text:#ddd;--text2:#888;--accent:#e94560;--green:#4ecca3;--red:#e94560;--gold:#f9a826;--blue:#6c63ff}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{background:#222;color:#ddd;font-family:'Courier New',monospace;overflow:hidden;height:100vh;height:100dvh;user-select:none;-webkit-user-select:none;touch-action:none}
-#root{display:flex;flex-direction:column;height:100vh;height:100dvh}
+body{background:var(--bg);color:var(--text);font-family:'Courier New',monospace;overflow-x:hidden;min-height:100vh;min-height:100dvh}
+#root{max-width:1400px;margin:0 auto;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}
 
-.hud{display:flex;align-items:center;padding:4px 8px;background:#111;gap:6px;flex-shrink:0;z-index:10;flex-wrap:wrap}
-.hud-day{color:#fff;font-size:.7em;font-weight:bold;background:#1a1a2e;padding:2px 6px;border-radius:3px}
-.hp-wrap{display:flex;align-items:center;gap:3px}
-.hp-icon{color:#e94560;font-size:.8em}
-.hp-bar-out{width:70px;height:10px;background:#333;border-radius:5px;overflow:hidden;position:relative}
-.hp-bar-in{height:100%;border-radius:5px;transition:width .3s}
-.hp-text{font-size:.55em;color:#fff;position:absolute;width:100%;text-align:center;top:0;line-height:10px;font-weight:bold;text-shadow:0 0 2px #000}
-.hud-cash{color:#4ecca3;font-size:.75em;font-weight:bold}
-.hud-stat{font-size:.6em;padding:1px 5px;background:#1a1a2e;border-radius:3px}
-.hud-stat .hl{color:#666}.hud-stat .hv{font-weight:bold}
-.hs-str{color:#fc5185}.hs-int{color:#6c63ff}.hs-chm{color:#f9a826}.hs-k{color:#a8e6cf}
-.hud-slots{display:flex;gap:2px;align-items:center}
-.hud-pip{width:8px;height:8px;border-radius:50%;border:1.5px solid #555}
-.hud-pip.u{background:#e94560;border-color:#e94560}
-.hud-pip.f{background:#4ecca3;border-color:#4ecca3}
+/* Skyline */
+.skyline{position:relative;overflow:hidden;flex-shrink:0}
+.sky-bg{height:clamp(40px,6vh,60px);transition:background 1s;position:relative}
+.sky-stars{position:absolute;top:0;left:0;right:0;bottom:0;opacity:0;transition:opacity 1s}
+.sky-stars.visible{opacity:1}
+.sky-star{position:absolute;width:2px;height:2px;background:#fff;border-radius:50%}
+.sky-buildings{position:absolute;bottom:0;left:0;right:0;height:60%;display:flex;align-items:flex-end;justify-content:space-around;padding:0 5%}
+.sky-bldg{background:#111;border-radius:2px 2px 0 0;position:relative}
+.sky-bldg::after{content:'';position:absolute;width:3px;height:3px;background:#f9a82644;border-radius:50%;top:30%;left:40%}
 
-.canvas-wrap{flex:1;position:relative;overflow:hidden}
-canvas{display:block;width:100%;height:100%}
+/* Top bar */
+.topbar{background:#111;border-bottom:1px solid var(--border);padding:clamp(4px,0.8vh,8px) clamp(8px,2vw,16px);display:flex;align-items:center;gap:clamp(6px,1.2vw,14px);flex-wrap:wrap;flex-shrink:0;z-index:5}
+.tb-day{color:var(--gold);font-weight:bold;font-size:clamp(.7em,1.4vw,.95em)}
+.tb-hp-wrap{display:flex;align-items:center;gap:4px}
+.tb-hp-icon{color:var(--red);font-size:clamp(.7em,1.2vw,.85em)}
+.tb-hp-bar{width:clamp(50px,10vw,90px);height:clamp(8px,1.2vh,12px);background:#222;border-radius:6px;overflow:hidden;position:relative}
+.tb-hp-fill{height:100%;border-radius:6px;transition:width .4s,background .4s}
+.tb-hp-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:clamp(.45em,.9vw,.6em);color:#fff;font-weight:bold;text-shadow:0 0 2px #000}
+.tb-cash{color:var(--green);font-weight:bold;font-size:clamp(.7em,1.3vw,.9em)}
+.tb-energy{display:flex;gap:3px;align-items:center}
+.tb-pip{width:clamp(8px,1.2vw,12px);height:clamp(14px,2vh,20px);border-radius:2px;border:1px solid #555;transition:background .3s}
+.tb-pip.full{background:var(--green);border-color:var(--green)}
+.tb-pip.empty{background:#222}
+.tb-stat{font-size:clamp(.55em,1vw,.72em);padding:clamp(1px,.3vh,3px) clamp(3px,.6vw,7px);background:var(--card);border-radius:3px;display:flex;gap:3px;position:relative;transition:transform .2s}
+.tb-stat .tsl{color:var(--text2)}.tb-stat .tsv{font-weight:bold}
+.tsv-s{color:#fc5185}.tsv-i{color:#6c63ff}.tsv-c{color:#f9a826}.tsv-k{color:#a8e6cf}
+.tb-stat.flash-up{animation:statFlashUp .6s}
+.tb-stat.flash-down{animation:statFlashDown .6s}
+@keyframes statFlashUp{0%,100%{background:var(--card)}50%{background:#1a4a2e;transform:scale(1.15)}}
+@keyframes statFlashDown{0%,100%{background:var(--card)}50%{background:#4a1a2e;transform:scale(1.15)}}
 
-/* Bottom sheet */
-.bsheet-overlay{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:20}
-.bsheet{position:absolute;bottom:0;left:0;right:0;background:#1a1a2e;border-top:2px solid #e94560;border-radius:16px 16px 0 0;z-index:21;max-height:55%;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 0 12px}
-.bsheet-handle{width:40px;height:4px;background:#555;border-radius:2px;margin:8px auto}
-.bsheet h3{color:#e94560;font-size:.9em;padding:4px 14px 2px}
-.bsheet .bdesc{color:#666;font-size:.65em;padding:0 14px 8px}
-.bsheet-close{position:absolute;top:8px;right:12px;background:none;border:none;color:#888;font-size:1.2em;cursor:pointer;font-family:inherit}
-.bsheet-actions{padding:0 10px}
+/* Float text */
+.float-text{position:absolute;top:-18px;right:0;font-size:.7em;font-weight:bold;animation:floatUp .8s forwards;pointer-events:none;z-index:20}
+.float-text.up{color:var(--green)}
+.float-text.down{color:var(--red)}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-20px)}}
 
-.act-btn{display:block;width:100%;margin:5px 0;padding:11px 12px;background:#0f3460;border:1px solid #333;color:#ddd;border-radius:8px;cursor:pointer;font-family:inherit;font-size:.78em;text-align:left;position:relative}
-.act-btn:active{background:#e94560}
-.act-btn:disabled{opacity:.3;pointer-events:none}
-.act-btn .ab-name{font-weight:bold;margin-bottom:1px}
-.act-btn .ab-sub{color:#888;font-size:.85em}
-.act-btn .ab-cost{position:absolute;top:11px;right:12px;color:#4ecca3;font-size:.85em}
-.act-btn .ab-req{color:#e94560;font-size:.8em;margin-top:2px}
+/* Main content */
+.main-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:clamp(8px,1.5vw,16px)}
 
-.job-row{display:flex;justify-content:space-between;padding:6px 12px;font-size:.7em;border-bottom:1px solid #111;cursor:pointer}
-.job-row:active{background:#0f3460}
-.job-row.locked{opacity:.3;pointer-events:none}
-.job-row.current{background:#0f3460;border-radius:4px}
-.job-row .jn{color:#ddd}.job-row .jr{color:#666}.job-row .jp{color:#4ecca3}
+/* Location cards */
+.loc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(130px,18vw,180px),1fr));gap:clamp(6px,1vw,12px);margin-bottom:clamp(10px,2vh,18px)}
+.loc-card{background:var(--card);border:1px solid var(--border);border-radius:clamp(8px,1vw,12px);padding:clamp(10px,1.5vw,18px);cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;text-align:center;position:relative;overflow:hidden}
+.loc-card:active{transform:scale(.97)}
+.loc-card:not(.disabled):hover{transform:translateY(-3px);box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.loc-card.disabled{opacity:.35;pointer-events:none}
+.loc-card.active{border-width:2px}
+.loc-icon{font-size:clamp(1.5em,3vw,2.2em);margin-bottom:4px;display:block}
+.loc-label{font-size:clamp(.65em,1.1vw,.82em);font-weight:bold}
+.loc-sub{font-size:clamp(.5em,.85vw,.62em);color:var(--text2);margin-top:2px}
+.loc-lock{position:absolute;top:6px;right:6px;font-size:.7em;color:#666}
 
-.shop-row{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid #111;cursor:pointer}
-.shop-row:active{background:#0f3460}
-.shop-row.dis{opacity:.3;pointer-events:none}
-.shop-row .sn{color:#ddd;font-size:.78em;font-weight:bold}
-.shop-row .sd{color:#666;font-size:.62em}
-.shop-row .sp{color:#f9a826;font-size:.78em;font-weight:bold;white-space:nowrap}
+/* Action area */
+.action-panel{background:var(--card);border:1px solid var(--border);border-radius:clamp(8px,1vw,12px);padding:clamp(10px,1.5vw,18px);margin-bottom:clamp(10px,2vh,16px)}
+.ap-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:clamp(6px,1vh,12px)}
+.ap-title{font-size:clamp(.85em,1.5vw,1.1em);font-weight:bold}
+.ap-close{background:none;border:1px solid #555;color:#999;border-radius:4px;padding:4px 10px;cursor:pointer;font-family:inherit;font-size:clamp(.6em,1vw,.75em)}
+.ap-close:active{background:#333}
+.ap-desc{color:var(--text2);font-size:clamp(.6em,1vw,.75em);margin-bottom:clamp(8px,1.2vh,14px);font-style:italic}
 
-.end-day-float{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:15;padding:10px 24px;background:rgba(26,26,46,.9);border:1px solid #f9a826;color:#f9a826;border-radius:20px;font-family:inherit;font-size:.75em;cursor:pointer;backdrop-filter:blur(4px)}
-.end-day-float:active{background:#f9a82633}
+.act-btn{display:block;width:100%;margin:clamp(4px,.6vh,6px) 0;padding:clamp(10px,1.5vh,14px) clamp(10px,1.5vw,14px);background:#0f1a30;border:1px solid #2a3a5a;color:var(--text);border-radius:clamp(6px,.8vw,8px);cursor:pointer;font-family:inherit;font-size:clamp(.7em,1.15vw,.85em);text-align:left;transition:background .15s;position:relative}
+.act-btn:active:not(:disabled){background:var(--accent)}
+.act-btn:disabled{opacity:.3;cursor:not-allowed}
+.act-btn .ab-name{font-weight:bold}
+.act-btn .ab-sub{color:var(--text2);font-size:.88em;margin-top:1px}
+.act-btn .ab-cost{position:absolute;top:clamp(10px,1.5vh,14px);right:clamp(10px,1.5vw,14px);color:var(--green);font-size:.85em}
+.act-btn .ab-req{color:var(--red);font-size:.82em;margin-top:2px}
 
-/* Log toast */
-.log-toast{position:absolute;top:4px;left:50%;transform:translateX(-50%);z-index:15;padding:4px 12px;border-radius:12px;font-size:.65em;pointer-events:none;text-align:center;max-width:80%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;animation:toastIn .3s ease}
-.log-toast.good{background:rgba(78,204,163,.2);color:#4ecca3;border:1px solid #4ecca344}
-.log-toast.bad{background:rgba(233,69,96,.2);color:#e94560;border:1px solid #e9456044}
-.log-toast.event{background:rgba(249,168,38,.2);color:#f9a826;border:1px solid #f9a82644}
-@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+/* Job rows */
+.job-row{display:flex;justify-content:space-between;align-items:center;padding:clamp(6px,1vh,10px) clamp(8px,1vw,12px);border-bottom:1px solid #111;font-size:clamp(.62em,1vw,.75em);cursor:pointer;transition:background .1s}
+.job-row:active{background:#0f2a3a}
+.job-row.locked{opacity:.25;pointer-events:none}
+.job-row.current{background:#0f2a3a;border-radius:4px;border:1px solid var(--green)}
+.jr-name{color:var(--text)}.jr-req{color:var(--text2)}.jr-pay{color:var(--green)}
+
+/* Shop items */
+.shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(140px,20vw,200px),1fr));gap:clamp(6px,1vw,10px)}
+.shop-card{background:#0f1a30;border:1px solid #2a3a5a;border-radius:8px;padding:clamp(8px,1.2vw,14px);cursor:pointer;transition:border-color .15s}
+.shop-card:active:not(.dis){border-color:var(--gold)}
+.shop-card.dis{opacity:.3;pointer-events:none}
+.shop-card .sc-icon{font-size:1.3em}
+.shop-card .sc-name{font-size:clamp(.65em,1vw,.8em);font-weight:bold;margin:2px 0}
+.shop-card .sc-desc{font-size:clamp(.5em,.85vw,.65em);color:var(--text2)}
+.shop-card .sc-price{color:var(--gold);font-size:clamp(.65em,1vw,.8em);font-weight:bold;margin-top:4px}
+
+/* NPC chat */
+.npc-bubble{background:#1a2a3e;border:1px solid #2a4a6a;border-radius:12px;padding:clamp(10px,1.5vw,16px);margin:clamp(6px,1vh,10px) 0;position:relative}
+.npc-bubble::before{content:'';position:absolute;bottom:-8px;left:20px;border:8px solid transparent;border-top-color:#2a4a6a}
+.npc-name{color:var(--gold);font-weight:bold;font-size:clamp(.7em,1.1vw,.85em);margin-bottom:4px}
+.npc-text{font-size:clamp(.65em,1.05vw,.78em);color:#ccc;line-height:1.4}
+.npc-choices{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px}
+
+/* Inventory bar */
+.inv-bar{display:flex;flex-wrap:wrap;gap:4px;padding:clamp(4px,.6vh,6px) 0}
+.inv-item{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:clamp(.5em,.85vw,.62em);display:flex;align-items:center;gap:3px}
+.inv-qty{color:var(--gold);font-weight:bold}
+
+/* Wager selector */
+.wager-row{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.wager-btn{padding:clamp(3px,.5vh,5px) clamp(6px,1vw,10px);font-size:clamp(.55em,.9vw,.68em);background:#0f1a30;border:1px solid #2a3a5a;color:var(--text);border-radius:4px;cursor:pointer;font-family:inherit}
+.wager-btn.active{background:var(--accent);border-color:var(--accent)}
+
+/* Toasts */
+.toast-container{position:fixed;top:clamp(60px,10vh,90px);right:clamp(8px,2vw,20px);z-index:300;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.toast{padding:clamp(8px,1.2vh,12px) clamp(12px,2vw,18px);border-radius:8px;font-size:clamp(.6em,1vw,.78em);animation:toastSlide .3s ease;max-width:clamp(200px,30vw,320px)}
+.toast.good{background:rgba(78,204,163,.15);border:1px solid #4ecca344;color:var(--green)}
+.toast.bad{background:rgba(233,69,96,.15);border:1px solid #e9456044;color:var(--red)}
+.toast.info{background:rgba(108,99,255,.15);border:1px solid #6c63ff44;color:var(--blue)}
+.toast.gold{background:rgba(249,168,38,.15);border:1px solid #f9a82644;color:var(--gold)}
+@keyframes toastSlide{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
 
 /* Modal */
-.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:200;padding:16px}
-.modal{background:#1a1a2e;border:2px solid #e94560;border-radius:12px;padding:16px;max-width:400px;width:100%;max-height:85vh;overflow-y:auto}
-.modal h2{color:#e94560;font-size:.95em;margin-bottom:6px}
-.modal p{font-size:.78em;line-height:1.4;margin-bottom:6px;color:#ccc}
-.mbtn{display:block;width:100%;margin:5px 0;padding:11px;background:#0f3460;border:1px solid #333;color:#ddd;border-radius:6px;cursor:pointer;font-family:inherit;font-size:.78em;text-align:left}
-.mbtn:active{background:#e94560}
-.mbtn:disabled{opacity:.3;pointer-events:none}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:200;padding:clamp(12px,2vw,24px);animation:fadeIn .3s}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:var(--card);border:2px solid var(--accent);border-radius:clamp(10px,1.5vw,16px);padding:clamp(14px,2.5vw,24px);max-width:500px;width:100%;max-height:85vh;overflow-y:auto}
+.modal h2{color:var(--accent);font-size:clamp(.9em,1.5vw,1.15em);margin-bottom:clamp(6px,1vh,10px)}
+.modal p{font-size:clamp(.7em,1.1vw,.84em);line-height:1.4;margin-bottom:6px;color:#ccc}
+.modal-btn{display:block;width:100%;margin:clamp(4px,.6vh,6px) 0;padding:clamp(10px,1.5vh,14px);background:#0f1a30;border:1px solid #2a3a5a;color:var(--text);border-radius:6px;cursor:pointer;font-family:inherit;font-size:clamp(.7em,1.1vw,.84em);text-align:left}
+.modal-btn:active:not(:disabled){background:var(--accent)}
+.modal-btn:disabled{opacity:.3;pointer-events:none}
 
+/* Day transition */
+.day-trans{position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:250;animation:dayFade .5s}
+.day-trans span{color:var(--gold);font-size:clamp(1.5em,3vw,2.5em);font-weight:bold;animation:dayPop .5s}
+@keyframes dayFade{0%{opacity:0}30%{opacity:1}70%{opacity:1}100%{opacity:0}}
+@keyframes dayPop{0%{transform:scale(.5);opacity:0}50%{transform:scale(1.1);opacity:1}100%{transform:scale(1)}}
+
+/* End summary */
 .summ{text-align:center}
-.summ h2{font-size:1.3em;margin-bottom:8px}
-.summ .fs{font-size:.85em;margin:3px 0}
-.summ .al{font-size:1em;color:#f9a826;margin:6px 0}
-.summ .sc{font-size:1.2em;color:#e94560;margin:8px 0}
+.summ h2{font-size:clamp(1.2em,2.5vw,1.8em);margin-bottom:clamp(8px,1.5vh,14px)}
+.summ .fs{font-size:clamp(.75em,1.2vw,.92em);margin:clamp(3px,.5vh,5px) 0}
+.summ .headline{font-style:italic;color:var(--gold);font-size:clamp(.7em,1.15vw,.88em);margin:clamp(10px,2vh,18px) 0;padding:clamp(8px,1.5vh,14px);background:#0a0a0f;border-radius:8px;border:1px solid var(--gold)}
+.summ .score-big{font-size:clamp(1.3em,2.5vw,2em);color:var(--accent);margin:clamp(8px,1.5vh,14px) 0}
 
-.wager-row{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
-.wager-btn{padding:4px 8px;font-size:.65em;background:#0f3460;border:1px solid #333;color:#ddd;border-radius:4px;cursor:pointer;font-family:inherit}
-.wager-btn.active{background:#e94560}
+/* Rent warning */
+.rent-warn{background:rgba(233,69,96,.1);border:1px solid var(--red);border-radius:8px;padding:clamp(8px,1.2vh,12px);margin-bottom:clamp(8px,1.2vh,12px);font-size:clamp(.65em,1vw,.78em);color:var(--red);text-align:center}
+
+/* Corner special */
+.corner-glow{text-shadow:0 0 8px rgba(233,69,96,.5)}
 </style>
 </head>
 <body>
 <div id="root"></div>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script type="text/babel">
-const {useState,useCallback,useRef,useEffect} = React;
+const{useState,useCallback,useRef,useEffect}=React;
 
-// ===== WORLD CONSTANTS =====
-const W = 1200, H = 800;
-const BUILDINGS = [
-  {id:"apartment",label:"Apartment",x:60,y:460,w:140,h:110,color:"#4a6a7a",roof:"#3a5060",door:{x:130,y:540,w:20,h:30}},
-  {id:"university",label:"University",x:480,y:80,w:180,h:120,color:"#5a4a7a",roof:"#4a3a6a",door:{x:570,y:170,w:22,h:32}},
-  {id:"gym",label:"Gym",x:900,y:460,w:140,h:100,color:"#7a4a4a",roof:"#6a3a3a",door:{x:970,y:530,w:20,h:30}},
-  {id:"bar",label:"The Rusty Nail",x:480,y:560,w:160,h:100,color:"#7a6a3a",roof:"#6a5a2a",door:{x:560,y:630,w:20,h:30}},
-  {id:"workplace",label:"Workplace",x:900,y:80,w:160,h:110,color:"#3a7a4a",roof:"#2a6a3a",door:{x:980,y:160,w:20,h:30}},
-  {id:"store",label:"Quick-E-Mart",x:60,y:80,w:150,h:100,color:"#6a7a3a",roof:"#5a6a2a",door:{x:135,y:150,w:20,h:30}},
-];
-
-// ===== GAME DATA =====
+// ==================== DATA ====================
 const JOBS=[
-  {id:"panhandler",name:"Panhandler",pay:5,req:{},desc:"'Anything helps'. It doesn't."},
-  {id:"dishwasher",name:"Dishwasher",pay:15,req:{intelligence:5},desc:"Sisyphus had it easier."},
-  {id:"clerk",name:"Store Clerk",pay:25,req:{intelligence:15},desc:"Guarding snacks."},
-  {id:"bouncer",name:"Bouncer",pay:45,req:{strength:30},desc:"Judge of the door."},
-  {id:"juniordev",name:"Jr. Developer",pay:80,req:{intelligence:50},desc:"Stack Overflow boss."},
-  {id:"sales",name:"Sales Director",pay:120,req:{charm:50,intelligence:30},desc:"Selling your soul."},
-  {id:"executive",name:"Executive",pay:200,req:{intelligence:80,charm:50},desc:"Meetings about meetings."},
-  {id:"crimeboss",name:"Crime Boss",pay:150,req:{strength:40,karmaCap:-40},desc:"Morally bankrupt.",karmaShift:-2},
-  {id:"philanthropist",name:"Philanthropist",pay:50,req:{charm:60,karmaFloor:60},desc:"Saving the world.",karmaShift:2},
+  {id:"panhandler",name:"Panhandler",pay:8,req:{}},
+  {id:"fastfood",name:"Fast Food",pay:18,req:{intelligence:10}},
+  {id:"clerk",name:"Store Clerk",pay:30,req:{intelligence:20}},
+  {id:"bouncer",name:"Bouncer",pay:45,req:{strength:35}},
+  {id:"office",name:"Office Drone",pay:65,req:{intelligence:40,charm:20}},
+  {id:"trainer",name:"Personal Trainer",pay:80,req:{strength:50,charm:30}},
+  {id:"softdev",name:"Software Dev",pay:120,req:{intelligence:70}},
+  {id:"executive",name:"Executive",pay:200,req:{intelligence:85,charm:55}},
+  {id:"crimeboss",name:"Crime Boss",pay:250,req:{strength:40,intelligence:40,karmaCap:-30},karmaShift:-2},
 ];
-function canDoJob(j,s){for(const[k,v]of Object.entries(j.req)){if(k==="karmaCap"&&s.karma>v)return false;if(k==="karmaFloor"&&s.karma<v)return false;if(k!=="karmaCap"&&k!=="karmaFloor"&&(s[k]||0)<v)return false}return true}
+function jobAvail(j,s){for(const[k,v]of Object.entries(j.req)){if(k==="karmaCap"&&s.karma>v)return false;if(k!=="karmaCap"&&(s[k]||0)<v)return false;}return true}
 
 const ITEMS=[
-  {id:"energy_drink",name:"Energy Drink",cost:5,desc:"+10 HP",consumable:true,effect:{hp:10}},
-  {id:"cheap_smokes",name:"Cheap Smokes",cost:3,desc:"+1 CHM -3 HP",consumable:true,effect:{charm:1,hp:-3}},
-  {id:"laptop",name:"Laptop",cost:200,desc:"+5 INT",oneTime:true,effect:{intelligence:5}},
-  {id:"dumbbells",name:"Dumbbells",cost:150,desc:"+5 STR",oneTime:true,effect:{strength:5}},
-  {id:"nice_clothes",name:"Nice Clothes",cost:100,desc:"+5 CHM",oneTime:true,effect:{charm:5}},
-  {id:"alarm_clock",name:"Alarm Clock",cost:50,desc:"Block oversleep",oneTime:true},
-  {id:"skateboard",name:"Skateboard",cost:75,desc:"+speed +50 score",oneTime:true},
-  {id:"penthouse_key",name:"Penthouse Key",cost:5000,desc:"+500 score",oneTime:true},
-];
-
-const EVENTS=[
-  {title:"Mugging",desc:"Someone's getting mugged in the alley.",choices:[
-    {label:"Intervene (STR 20)",req:{strength:20},effects:()=>({karma:5,hp:Math.random()<.2?-10:0}),result:e=>`Stepped in.${e.hp<0?' -10 HP.':''} +5 Karma.`,type:"good"},
-    {label:"Walk away",effects:()=>({karma:-3}),result:()=>"-3 Karma.",type:"bad"},
-    {label:"Call cops",effects:()=>({karma:1}),result:()=>"+1 Karma. Minimal effort.",type:"event"},
-  ]},
-  {title:"Found Wallet",desc:"$50 inside plus an ID.",choices:[
-    {label:"Keep it",effects:()=>({cash:50,karma:-5}),result:()=>"+$50. -5 Karma.",type:"bad"},
-    {label:"Return it",effects:()=>({karma:3,charm:2,cash:10}),result:()=>"+$10 reward. +3K +2C.",type:"good"},
-  ]},
-  {title:"Bar Fight",desc:"Bottles fly. Chair incoming.",choices:[
-    {label:"Fight (STR 15)",req:{strength:15},effects:s=>s.strength>=15?{strength:2}:{hp:-15},result:s=>s.strength>=15?"+2 STR.":"-15 HP. Ouch.",type:"event"},
-    {label:"Run",effects:()=>({charm:-1}),result:()=>"-1 CHM. Dignity gone.",type:"bad"},
-  ]},
-  {title:"Job Offer",desc:"Tracksuit man has 'work' for you.",choices:[
-    {label:"Accept (STR 40)",req:{strength:40},effects:()=>({karma:-5}),result:()=>"Crime Boss unlocked. -5K.",type:"event"},
-    {label:"Decline",effects:()=>({}),result:()=>"Wise. Probably.",type:"event"},
-  ]},
-  {title:"Overslept",desc:"No alarm went off.",choices:[
-    {label:"Lose 1 slot",effects:()=>({slotPenalty:1}),result:()=>"-1 slot. Buy an alarm clock.",type:"bad",blockItem:"alarm_clock"},
-  ]},
-  {title:"Lucky Day",desc:"$20 on the ground. Nobody around.",choices:[
-    {label:"Take it",effects:()=>({cash:20}),result:()=>"+$20.",type:"good"},
-  ]},
-  {title:"Charity Drive",desc:"Volunteers want your money.",choices:[
-    {label:"Donate $50",req:{cash:50},effects:()=>({cash:-50,karma:5,charm:2}),result:()=>"-$50 +5K +2C.",type:"good"},
-    {label:"Ignore",effects:()=>({}),result:()=>"They judge you.",type:"event"},
-    {label:"Steal",req:{karmaBelow:0},effects:()=>({cash:30,karma:-10}),result:()=>"+$30 -10K. New low.",type:"bad"},
-  ]},
-  {title:"Food Poisoning",desc:"Gas station sushi. Mistake.",choices:[
-    {label:"Suffer",effects:()=>({hp:-10}),result:()=>"-10 HP.",type:"bad"},
-  ]},
+  {id:"energy_drink",name:"Energy Drink",icon:"\u26A1",cost:8,desc:"+15 HP",consumable:true,effect:{hp:15}},
+  {id:"skateboard",name:"Skateboard",icon:"\uD83D\uDEF9",cost:50,desc:"5% bonus energy/day",oneTime:true},
+  {id:"laptop",name:"Laptop",icon:"\uD83D\uDCBB",cost:250,desc:"+8 INT",oneTime:true,effect:{intelligence:8}},
+  {id:"dumbbells",name:"Dumbbells",icon:"\uD83C\uDFCB",cost:200,desc:"+8 STR",oneTime:true,effect:{strength:8}},
+  {id:"nice_clothes",name:"Nice Clothes",icon:"\uD83D\uDC54",cost:150,desc:"+8 CHM",oneTime:true,effect:{charm:8}},
+  {id:"alarm_clock",name:"Alarm Clock",icon:"\u23F0",cost:40,desc:"Block oversleep",oneTime:true},
+  {id:"sunglasses",name:"Sunglasses",icon:"\uD83D\uDD76",cost:75,desc:"+3 CHM, better bar luck",oneTime:true,effect:{charm:3}},
+  {id:"fake_id",name:"Fake ID",icon:"\uD83C\uDFB0",cost:100,desc:"High-stakes gambling",oneTime:true,corner:true},
+  {id:"protein",name:"Protein Shakes",icon:"\uD83E\uDD64",cost:60,desc:"+1 gym gains forever",oneTime:true},
 ];
 
 const NPCS=[
-  {name:"Bartender Dave",reqChm:0,lines:["'First one's free.'"]},
-  {name:"Regular Pete",reqChm:10,lines:["'Don't take bar advice.'"]},
-  {name:"Mysterious Woman",reqChm:25,lines:["'You're interesting.'"]},
-  {name:"Shady Tony",reqChm:5,reqKarma:-10,lines:["'You get things done.'"]},
-  {name:"Father Marcus",reqChm:15,reqKarma:15,lines:["'Kind heart.'"]},
+  {id:"rico",name:"Rico",stages:[
+    {reqChm:15,text:"'Hey, new face. I'm Rico. You look like someone who needs a break.'",choices:null},
+    {reqChm:25,text:"'I got a delivery job. $200, no questions asked. You in?'",choices:[{label:"Accept the job",karma:-3,cash:200,reply:"'Smart. Here's the cash upfront. Don't ask what's in the box.'"},{label:"Too risky",karma:1,reply:"'Your loss. Offer stands.'"}]},
+    {reqChm:30,text:()=>"'You're solid. I've got contacts if you ever need... anything.'",choices:[{label:"Tell me more",karma:-2,effect:{unlockCorner:true},reply:"'Welcome to the real economy, friend.'"},{label:"I'm good",karma:2,reply:"'Clean living. Respect that.'"}]},
+  ]},
+  {id:"maya",name:"Maya",stages:[
+    {reqChm:10,text:"'Studying at the university. This bar has the best wifi, weirdly.'"},
+    {reqChm:20,text:"'Want to study together sometime? I can show you some tricks.'",choices:[{label:"Sure!",intelligence:3,reply:"'Great! Here's what I know about efficient studying.'"},{label:"Not my thing",reply:"'Suit yourself.'"}]},
+    {reqChm:35,text:"'I got a job at a tech company. Networking works. Thanks for being around.'",choices:[{label:"Congrats!",charm:2,cash:50,reply:"'Here, let me buy you dinner. You earned it.'"}]},
+  ]},
+  {id:"frank",name:"Old Frank",stages:[
+    {reqChm:5,text:"'I've been coming here 40 years. Seen everything. You remind me of someone.'"},
+    {reqChm:15,text:"'That someone was me. Young, broke, full of bad ideas. Want some advice?'",choices:[{label:"Sure, Frank",intelligence:2,karma:1,reply:"'Save your money. Invest in yourself. And never skip sleep.'"},{label:"I'm good",reply:"'Your funeral. Metaphorically. Probably.'"}]},
+    {reqChm:25,text:"'I'm retiring. Here, take this.'",choices:[{label:"Accept gift",cash:150,karma:1,reply:"'It's not much, but it's honest. Use it well.'"}]},
+  ]},
+  {id:"vex",name:"Vex",stages:[
+    {reqChm:8,reqKarma:-5,text:"'You've got an edge. I respect that. Name's Vex.'"},
+    {reqChm:18,reqKarma:-15,text:"'I run things around here. Want in? The pay's better than any legit job.'",choices:[{label:"I'm listening",karma:-5,cash:100,reply:"'Good. First job's simple. Here's a taste.'"},{label:"Pass",reply:"'Your loss.'"}]},
+    {reqChm:30,reqKarma:-25,text:"'You're my right hand now. Here's your cut from last week.'",choices:[{label:"Take it",cash:300,karma:-3,reply:"'Big things coming. Stay ready.'"}]},
+  ]},
 ];
 
-// ===== DRAWING =====
-function drawWorld(ctx,tod,buildings,playerPos,playerFacing,frame,moving,hasSkateboard,enteredId,nearId){
-  // Sky
-  const skyColors={morning:['#2a3050','#3a4060'],midday:['#2a3050','#3a4570'],afternoon:['#1a2040','#2a3050'],evening:['#0e1525','#1a2040'],night:['#080c18','#0e1525']};
-  const sc=skyColors[tod]||skyColors.morning;
-  const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,sc[0]); g.addColorStop(1,sc[1]);
-  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+const EVENTS=[
+  {id:"mugging",title:"Mugging",desc:"Someone grabs at your wallet in the alley.",choices:[
+    {label:"Fight back (STR 25)",req:{strength:25},effects:s=>s.strength>=25?{karma:2}:{cash:-30},result:s=>s.strength>=25?"You fought them off. +2 Karma.":"They got $30. Embarrassing for everyone.",type:s=>s.strength>=25?"good":"bad"},
+    {label:"Run",effects:()=>({hp:-5}),result:()=>"You ran. Scraped your knee. -5 HP.",type:()=>"bad"},
+  ]},
+  {id:"wallet",title:"Found Wallet",desc:"A fat wallet on the ground. $50 inside, ID card visible.",choices:[
+    {label:"Keep it",effects:()=>({cash:50,karma:-3}),result:()=>"+$50. -3 Karma. Sleep well.",type:()=>"bad",flag:"keptWallet"},
+    {label:"Return it",effects:()=>({karma:3}),result:()=>"+3 Karma. Good things come to good people. Eventually.",type:()=>"good",flag:"returnedWallet"},
+  ]},
+  {id:"barfight",title:"Bar Fight",desc:"Bottles fly. A chair is airborne. You're in the splash zone.",choices:[
+    {label:"Dodge (STR 20)",req:{strength:20},effects:s=>s.strength>=20?{strength:1}:{hp:-15},result:s=>s.strength>=20?"Dodged! +1 STR.":"Chair to the face. -15 HP.",type:s=>s.strength>=20?"good":"bad"},
+    {label:"Hide under table",effects:()=>({}),result:()=>"You hid. Smart. Undignified, but smart.",type:()=>"event"},
+  ]},
+  {id:"scholarship",title:"Pop Quiz",desc:"Your university professor emails you a surprise test.",choices:[
+    {label:"Take it (INT 30)",req:{intelligence:30},effects:s=>s.intelligence>=30?{cash:50}:{},result:s=>s.intelligence>=30?"Aced it. $50 scholarship.":"Failed. At least it wasn't graded.",type:s=>s.intelligence>=30?"good":"bad"},
+  ]},
+  {id:"gymbuddy",title:"Gym Buddy",desc:"Someone at the gym asks you to spot them.",choices:[
+    {label:"Help out",effects:()=>({strength:2,charm:1}),result:()=>"+2 STR +1 CHM. You made a friend. Probably.",type:()=>"good"},
+  ]},
+  {id:"lucky",title:"Lucky Day",desc:"You find $20 on the ground. No one around.",choices:[
+    {label:"Nice",effects:()=>({cash:20}),result:()=>"+$20. Sometimes the universe doesn't hate you.",type:()=>"good"},
+  ]},
+  {id:"foodpoisoning",title:"Food Poisoning",desc:"That gas station sushi was a mistake. A terrible mistake.",choices:[
+    {label:"Suffer",effects:()=>({hp:-10,energyPenalty:1}),result:()=>"-10 HP. -1 energy tomorrow. Worth it? No.",type:()=>"bad"},
+  ]},
+  {id:"jobtip",title:"Job Interview Tip",desc:"An NPC mentions a career path you haven't explored.",choices:[
+    {label:"Thanks for the tip",effects:()=>({}),result:()=>"Now you know what to aim for. Knowledge is power.",type:()=>"info"},
+  ]},
+  {id:"crisis",title:"Existential Crisis",desc:"You stare at the ceiling for an hour wondering what it all means.",choices:[
+    {label:"...okay",effects:()=>({strength:-1,intelligence:-1,charm:-1,karma:-1,energyPenalty:1}),result:()=>"-1 to everything. At least you're self-aware.",type:()=>"bad"},
+  ]},
+  {id:"walletreturn",title:"Wallet Owner Returns",desc:"Remember that wallet you returned? The owner found you!",choices:[
+    {label:"Accept reward",effects:()=>({cash:100,karma:2}),result:()=>"+$100 +2 Karma. Good karma is real karma.",type:()=>"good"},
+  ],condition:flags=>flags.returnedWallet},
+  {id:"rentscam",title:"Rent Scam",desc:"Someone offers you a 'cheaper apartment'. Seems too good.",choices:[
+    {label:"Trust them (INT 35)",req:{intelligence:35},effects:s=>s.intelligence>=35?{karma:1}:{cash:-80},result:s=>s.intelligence>=35?"You saw through the scam. +1 Karma.":"Scammed. -$80. Ouch.",type:s=>s.intelligence>=35?"good":"bad"},
+    {label:"Decline",effects:()=>({}),result:()=>"Smart. If it seems too good...",type:()=>"event"},
+  ]},
+];
 
-  // Stars at night/evening
-  if(tod==='night'||tod==='evening'){ctx.fillStyle='#ffffff18';for(let i=0;i<60;i++){ctx.fillRect((i*173)%W,(i*97)%(H*.3),1.5,1.5)}}
-
-  // Ground
-  ctx.fillStyle='#2a3a2a'; ctx.fillRect(0,H*.85,W,H*.15);
-
-  // Roads - H
-  const ry=H*.52;
-  ctx.fillStyle='#3a3a3a'; ctx.fillRect(0,ry,W,60);
-  ctx.fillStyle='#444'; ctx.fillRect(0,ry-4,W,4); ctx.fillRect(0,ry+60,W,4);
-  // Dashes
-  ctx.strokeStyle='#f9a82644'; ctx.lineWidth=2; ctx.setLineDash([20,14]);
-  ctx.beginPath(); ctx.moveTo(0,ry+30); ctx.lineTo(W,ry+30); ctx.stroke(); ctx.setLineDash([]);
-
-  // Roads - V
-  const rx=W*.42;
-  ctx.fillStyle='#3a3a3a'; ctx.fillRect(rx,0,60,H);
-  ctx.fillStyle='#444'; ctx.fillRect(rx-4,0,4,H); ctx.fillRect(rx+60,0,4,H);
-  ctx.strokeStyle='#f9a82644'; ctx.setLineDash([20,14]);
-  ctx.beginPath(); ctx.moveTo(rx+30,0); ctx.lineTo(rx+30,H); ctx.stroke(); ctx.setLineDash([]);
-
-  // Sidewalks
-  ctx.fillStyle='#4a4a4a';
-  ctx.fillRect(0,ry-10,W,6); ctx.fillRect(0,ry+64,W,6);
-  ctx.fillRect(rx-10,0,6,H); ctx.fillRect(rx+64,0,6,H);
-
-  // Crosswalks
-  ctx.fillStyle='#f9a82633';
-  for(let i=0;i<4;i++){ctx.fillRect(rx+5+i*14,ry,8,60)}
-  for(let i=0;i<4;i++){ctx.fillRect(rx,ry+5+i*14,60,8)}
-
-  // Lamp posts
-  for(let lx of [250,750,250,750]){
-    const ly=lx<500?ry-10:ry+70;
-    ctx.strokeStyle='#555'; ctx.lineWidth=3;
-    ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(lx,ly-35); ctx.stroke();
-    ctx.fillStyle=tod==='night'?'#f9a82866':'#f9a82833';
-    ctx.beginPath(); ctx.arc(lx,ly-38,5,0,Math.PI*2); ctx.fill();
-    if(tod==='night'){
-      const lg=ctx.createRadialGradient(lx,ly-38,0,lx,ly-38,50);
-      lg.addColorStop(0,'rgba(249,168,38,0.08)'); lg.addColorStop(1,'transparent');
-      ctx.fillStyle=lg; ctx.fillRect(lx-50,ly-88,100,100);
-    }
-  }
-
-  // Parked car
-  ctx.fillStyle='#e94560'; ctx.fillRect(rx+10,ry-70,40,25);
-  ctx.fillStyle='#c0354e'; ctx.fillRect(rx+15,ry-75,30,15);
-  ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(rx+18,ry-43,5,0,Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(rx+42,ry-43,5,0,Math.PI*2); ctx.fill();
-
-  // Buildings
-  for(const b of buildings){
-    const near=nearId===b.id;
-    const entered=enteredId===b.id;
-
-    // Shadow
-    ctx.fillStyle='rgba(0,0,0,.25)'; ctx.fillRect(b.x+5,b.y+5,b.w,b.h);
-    // Glow
-    if(near||entered){ctx.fillStyle=entered?'rgba(233,69,96,.12)':'rgba(78,204,163,.08)';ctx.fillRect(b.x-6,b.y-6,b.w+12,b.h+12)}
-    // Body
-    ctx.fillStyle=b.color; ctx.fillRect(b.x,b.y,b.w,b.h);
-    // Roof
-    ctx.fillStyle=b.roof;
-    ctx.beginPath(); ctx.moveTo(b.x-8,b.y); ctx.lineTo(b.x+b.w/2,b.y-25); ctx.lineTo(b.x+b.w+8,b.y); ctx.closePath(); ctx.fill();
-    // Windows
-    const wc=entered?'#f9a82688':'#f9a82644';
-    ctx.fillStyle=wc;
-    const rows=Math.floor(b.h/35);
-    const cols=Math.floor(b.w/35);
-    for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
-      const wx=b.x+15+c*35,wy=b.y+12+r*35;
-      if(Math.abs(wx-b.door.x)<15&&Math.abs(wy-b.door.y)<15) continue;
-      ctx.fillRect(wx,wy,14,12);
-      ctx.strokeStyle='#00000044'; ctx.lineWidth=1;
-      ctx.strokeRect(wx,wy,14,12);
-      ctx.beginPath(); ctx.moveTo(wx+7,wy); ctx.lineTo(wx+7,wy+12); ctx.stroke();
-    }
-    // Door
-    ctx.fillStyle=entered?'#f9a826':'#2a1a0a';
-    ctx.fillRect(b.door.x,b.door.y,b.door.w,b.door.h);
-    ctx.fillStyle='#f9a826'; ctx.beginPath(); ctx.arc(b.door.x+b.door.w-4,b.door.y+b.door.h/2,2,0,Math.PI*2); ctx.fill();
-
-    // Label
-    ctx.fillStyle=near?'#fff':'#bbb'; ctx.font=`${near?'bold ':''}11px monospace`; ctx.textAlign='center';
-    ctx.fillText(b.label,b.x+b.w/2,b.y+b.h+16);
-    if(near&&!entered){ctx.fillStyle='#4ecca3';ctx.font='bold 10px monospace';ctx.fillText('TAP DOOR',b.x+b.w/2,b.y+b.h+28)}
-  }
-
-  // Player
-  drawStick(ctx,playerPos.x,playerPos.y,playerFacing,frame,moving,hasSkateboard);
-}
-
-function drawStick(ctx,x,y,face,frame,moving,board){
-  ctx.save(); ctx.translate(x,y); ctx.scale(face==='left'?-1:1,1);
-  // Shadow
-  ctx.fillStyle='rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(0,26,10,4,0,0,Math.PI*2); ctx.fill();
-  const w=moving?Math.sin(frame*.18)*.35:0;
-  ctx.strokeStyle='#eee'; ctx.lineWidth=2.5; ctx.lineCap='round';
-  // Body
-  ctx.beginPath(); ctx.moveTo(0,-10); ctx.lineTo(0,10); ctx.stroke();
-  // Legs
-  ctx.beginPath(); ctx.moveTo(0,10); ctx.lineTo(-6,24+w*5); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(0,10); ctx.lineTo(6,24-w*5); ctx.stroke();
-  // Arms
-  ctx.beginPath(); ctx.moveTo(0,-2); ctx.lineTo(-8,8-w*4); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(0,-2); ctx.lineTo(8,8+w*4); ctx.stroke();
-  // Head
-  ctx.fillStyle='#eee'; ctx.beginPath(); ctx.arc(0,-17,7,0,Math.PI*2); ctx.fill();
-  // Eye
-  ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(3,-18,1.5,0,Math.PI*2); ctx.fill();
-  // Board
-  if(board){ctx.fillStyle='#e94560';ctx.fillRect(-10,25,20,3);ctx.fillStyle='#888';ctx.beginPath();ctx.arc(-7,30,2.5,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(7,30,2.5,0,Math.PI*2);ctx.fill()}
-  ctx.restore();
-}
-
-// ===== MAIN APP =====
+// ==================== APP ====================
 function App(){
-  const canvasRef=useRef(null);
-  const animRef=useRef(null);
-  const frameRef=useRef(0);
-  const playerRef=useRef({x:130,y:600,targetX:null,targetY:null});
-  const facingRef=useRef('right');
-  const movingRef=useRef(false);
-  const keysRef=useRef({});
-  const gameStateRef=useRef(null);
+  const[stats,setStats]=useState({strength:5,intelligence:5,charm:5,karma:0});
+  const[hp,setHp]=useState(100);
+  const[cash,setCash]=useState(100);
+  const[day,setDay]=useState(1);
+  const[energy,setEnergy]=useState(4);
+  const[maxEnergy,setMaxEnergy]=useState(4);
+  const[slept,setSlept]=useState(false);
+  const[job,setJob]=useState("panhandler");
+  const[inv,setInv]=useState([]);
+  const[invQty,setInvQty]=useState({});
+  const[loc,setLoc]=useState(null);
+  const[gameOver,setGameOver]=useState(null);
+  const[activeEvent,setActiveEvent]=useState(null);
+  const[dayLog,setDayLog]=useState([]);
+  const[showSummary,setShowSummary]=useState(false);
+  const[showDayTrans,setShowDayTrans]=useState(false);
+  const[toasts,setToasts]=useState([]);
+  const[flashes,setFlashes]=useState({});
+  const[floats,setFloats]=useState({});
+  const[npcProgress,setNpcProgress]=useState({});
+  const[flags,setFlags]=useState({});
+  const[wager,setWager]=useState(10);
+  const[rentDue,setRentDue]=useState(7);
+  const[missedRent,setMissedRent]=useState(0);
+  const[npcChat,setNpcChat]=useState(null);
+  const[prevJobs,setPrevJobs]=useState(["panhandler"]);
+  const toastId=useRef(0);
 
-  // Game state
-  const [stats,setStats]=useState({strength:1,intelligence:1,charm:1,karma:0});
-  const [hp,setHp]=useState(100);
-  const [cash,setCash]=useState(200);
-  const [day,setDay]=useState(1);
-  const [slots,setSlots]=useState(4);
-  const [slept,setSlept]=useState(false);
-  const [job,setJob]=useState("panhandler");
-  const [inv,setInv]=useState([]);
-  const [gameOver,setGameOver]=useState(null);
-  const [activeEvent,setActiveEvent]=useState(null);
-  const [enteredBuilding,setEnteredBuilding]=useState(null);
-  const [nearBuilding,setNearBuilding]=useState(null);
-  const [toast,setToast]=useState(null);
-  const [wager,setWager]=useState(10);
-  const [dayEndPending,setDayEndPending]=useState(false);
+  const hasItem=id=>inv.includes(id);
+  const canAct=energy>0&&!gameOver&&!activeEvent&&!showSummary&&!showDayTrans;
+  const cornerUnlocked=stats.karma<-10||flags.unlockCorner;
 
-  const nearRef=useRef(null);
-  const enteredRef=useRef(null);
-  useEffect(()=>{nearRef.current=nearBuilding},[nearBuilding]);
-  useEffect(()=>{enteredRef.current=enteredBuilding},[enteredBuilding]);
-
-  const hasSkateboard=inv.includes('skateboard');
-  const canAct=slots>0&&!gameOver&&!activeEvent&&!dayEndPending;
-  const tod=['night','evening','afternoon','midday','morning'][slots]||'morning';
-
-  const showToast=useCallback((msg,type)=>{setToast({msg,type});setTimeout(()=>setToast(null),2200)},[]);
-
-  const addLog=useCallback((msg,type)=>showToast(msg,type),[showToast]);
-
-  const modify=useCallback((changes)=>{
-    let logParts=[];
-    if(changes.hp){setHp(p=>{const n=Math.max(0,Math.min(100,p+changes.hp));if(n<=0)setGameOver("death");return n});if(changes.hp>0)logParts.push(`+${changes.hp} HP`);else logParts.push(`${changes.hp} HP`)}
-    if(changes.cash){setCash(p=>Math.max(0,p+changes.cash));if(changes.cash>0)logParts.push(`+$${changes.cash}`);else logParts.push(`-$${Math.abs(changes.cash)}`)}
-    if(changes.strength){setStats(p=>({...p,strength:Math.max(0,p.strength+changes.strength)}));logParts.push(`+${changes.strength} STR`)}
-    if(changes.intelligence){setStats(p=>({...p,intelligence:Math.max(0,p.intelligence+changes.intelligence)}));logParts.push(`+${changes.intelligence} INT`)}
-    if(changes.charm){setStats(p=>({...p,charm:Math.max(0,p.charm+changes.charm)}));logParts.push(`+${changes.charm} CHM`)}
-    if(changes.karma){setStats(p=>({...p,karma:Math.max(-100,Math.min(100,p.karma+changes.karma))}));logParts.push(`${changes.karma>0?'+':''}${changes.karma} K`)}
-    if(changes.slotPenalty){setSlots(p=>Math.max(0,p-changes.slotPenalty))}
-    return logParts.join(', ');
+  // Flash + float
+  const flash=useCallback((stat,dir,amount)=>{
+    setFlashes(p=>({...p,[stat]:dir}));
+    if(amount)setFloats(p=>({...p,[stat]:{dir,amount}}));
+    setTimeout(()=>{setFlashes(p=>{const n={...p};delete n[stat];return n})},600);
+    setTimeout(()=>{setFloats(p=>{const n={...p};delete n[stat];return n})},800);
   },[]);
 
-  const useSlot=useCallback(()=>setSlots(p=>p-1),[]);
+  // Toast
+  const toast=useCallback((msg,type="info")=>{
+    const id=++toastId.current;
+    setToasts(p=>[...p,{id,msg,type}]);
+    setTimeout(()=>setToasts(p=>p.filter(t=>t.id!==id)),3000);
+  },[]);
+
+  // Modify state
+  const modify=useCallback((changes,logMsg)=>{
+    const parts=[];
+    if(changes.hp){setHp(p=>{const n=Math.max(0,Math.min(100,p+changes.hp));if(n<=0)setGameOver("death");return n});flash("hp",changes.hp>0?"up":"down",Math.abs(changes.hp));parts.push(`${changes.hp>0?'+':''}${changes.hp} HP`)}
+    if(changes.cash){setCash(p=>Math.max(0,p+changes.cash));flash("cash",changes.cash>0?"up":"down",Math.abs(changes.cash));parts.push(`${changes.cash>0?'+$':'$'}${changes.cash}`)}
+    for(const s of["strength","intelligence","charm","karma"]){
+      if(changes[s]){
+        setStats(p=>{const n={...p};n[s]=s==="karma"?Math.max(-100,Math.min(100,n[s]+changes[s])):Math.max(0,n[s]+changes[s]);return n});
+        flash(s,changes[s]>0?"up":"down",Math.abs(changes[s]));
+        const labels={strength:"STR",intelligence:"INT",charm:"CHM",karma:"K"};
+        parts.push(`${changes[s]>0?'+':''}${changes[s]} ${labels[s]}`)
+      }
+    }
+    if(changes.energyPenalty)setMaxEnergy(p=>Math.max(1,p-changes.energyPenalty));
+    if(logMsg)setDayLog(p=>[...p,logMsg]);
+    return parts.join(', ');
+  },[flash]);
+
+  const useSlot=useCallback(()=>setEnergy(p=>p-1),[]);
+
+  // Check new job unlocks
+  useEffect(()=>{
+    JOBS.forEach(j=>{
+      if(!prevJobs.includes(j.id)&&jobAvail(j,stats)){
+        setPrevJobs(p=>[...p,j.id]);
+        toast(`NEW JOB: ${j.name} ($${j.pay}/slot)`,"gold");
+      }
+    });
+  },[stats,prevJobs,toast]);
 
   // End day
   const endDay=useCallback(()=>{
-    setEnteredBuilding(null);
-    setDayEndPending(true);
-    let penalty=false;
-    setSlept(prev=>{penalty=!prev;return prev});
-    setTimeout(()=>{
-      if(penalty){setHp(p=>{const n=Math.max(0,p-15);if(n<=0)setGameOver("death");return n});showToast("Didn't sleep. -15 HP.","bad")}
-      setDay(prev=>{
-        if(prev>=100){setGameOver("day100");return prev}
-        return prev+1;
-      });
-      setSlots(4);
-      setSlept(false);
-      setDayEndPending(false);
-      // Random event
-      if(Math.random()<.2){
-        setTimeout(()=>{
-          let pool=EVENTS;
-          setInv(prevInv=>{if(prevInv.includes("alarm_clock"))pool=pool.filter(e=>e.title!=="Overslept");return prevInv});
-          setActiveEvent(pool[Math.floor(Math.random()*pool.length)]);
-        },100);
-      }
-    },400);
-  },[showToast]);
+    if(!slept){
+      setHp(p=>{const n=Math.max(0,p-15);if(n<=0)setGameOver("death");return n});
+      setDayLog(p=>[...p,"Didn't sleep. -15 HP. Tomorrow will be worse."]);
+      setMaxEnergy(3);
+    }else{
+      setMaxEnergy(4);
+    }
+    setShowSummary(true);
+  },[slept]);
 
   // Auto end day
   useEffect(()=>{
-    if(slots<=0&&!gameOver&&!activeEvent&&!dayEndPending){const t=setTimeout(endDay,500);return()=>clearTimeout(t)}
-  },[slots,gameOver,activeEvent,dayEndPending,endDay]);
+    if(energy<=0&&!gameOver&&!activeEvent&&!showSummary&&!showDayTrans){
+      const t=setTimeout(endDay,400);return()=>clearTimeout(t);
+    }
+  },[energy,gameOver,activeEvent,showSummary,showDayTrans,endDay]);
+
+  // Advance to next day
+  const nextDay=()=>{
+    setShowSummary(false);
+    if(day>=100){setGameOver("day100");return}
+    const nd=day+1;
+    // Rent check
+    let newMissed=missedRent;
+    if(nd%7===0){
+      setCash(prev=>{
+        if(prev>=50){
+          setDayLog(p=>[...p,"Paid rent. -$50."]);
+          newMissed=0;
+          setMissedRent(0);
+          return prev-50;
+        }else{
+          setHp(p=>Math.max(0,p-20));
+          setStats(p=>({...p,charm:Math.max(0,p.charm-5)}));
+          newMissed=missedRent+1;
+          setMissedRent(newMissed);
+          setDayLog(p=>[...p,"Couldn't pay rent. -20 HP, -5 CHM."]);
+          if(newMissed>=2){setGameOver("eviction")}
+          return prev;
+        }
+      });
+    }
+    setShowDayTrans(true);
+    setTimeout(()=>{
+      setDay(nd);
+      const bonus=hasItem("skateboard")&&Math.random()<.05?1:0;
+      setEnergy(maxEnergy+bonus);
+      if(bonus)toast("Skateboard saved time! +1 energy.","good");
+      setSlept(false);
+      setDayLog([]);
+      setLoc(null);
+      setShowDayTrans(false);
+      // Random event 25%
+      if(Math.random()<.25){
+        let pool=EVENTS.filter(e=>!e.condition||e.condition(flags));
+        if(hasItem("alarm_clock"))pool=pool.filter(e=>e.id!=="oversleep");
+        if(pool.length){setActiveEvent(pool[Math.floor(Math.random()*pool.length)])}
+      }
+    },500);
+  };
 
   // Event choice
-  const handleEventChoice=(c)=>{
-    const efx=typeof c.effects==='function'?c.effects(stats):c.effects;
-    const msg=typeof c.result==='function'?c.result(efx):c.result;
-    const parts=modify(efx);
-    showToast(msg,c.type||"event");
+  const handleEventChoice=c=>{
+    const efx=typeof c.effects==="function"?c.effects(stats):c.effects;
+    const msg=typeof c.result==="function"?c.result(stats):c.result;
+    const tp=typeof c.type==="function"?c.type(stats):c.type;
+    modify(efx,msg);
+    toast(msg,tp);
+    if(c.flag)setFlags(p=>({...p,[c.flag]:true}));
     setActiveEvent(null);
   };
-  const canChoose=(c)=>{
-    if(!c.req)return true;
-    for(const[k,v]of Object.entries(c.req)){
-      if(k==="strength"||k==="intelligence"||k==="charm"){if(stats[k]<v)return false}
-      if(k==="cash"&&cash<v)return false;
-      if(k==="karmaBelow"&&stats.karma>=v)return false;
-    }return true;
-  };
+  const canChoose=c=>{if(!c.req)return true;for(const[k,v]of Object.entries(c.req)){if((stats[k]||0)<v)return false}return true};
 
   // Actions
-  const sGain=(base,stat)=>stats[stat]>50?Math.max(1,Math.floor(base*.5)):base+Math.floor(Math.random()*3);
-  const doSleep=()=>{if(!canAct||slept)return;modify({hp:20});setSlept(true);useSlot();showToast("Slept. +20 HP.","good")};
-  const doStudy=()=>{if(!canAct||cash<10)return;const g=sGain(2,"intelligence");modify({intelligence:g,cash:-10});useSlot();showToast(`Studied. +${g} INT. -$10.`,"good")};
-  const doWorkout=()=>{if(!canAct)return;const g=sGain(2,"strength");modify({strength:g});useSlot();showToast(`Worked out. +${g} STR.`,"good")};
-  const doSpar=()=>{if(!canAct||stats.strength<25)return;if(Math.random()<.5){modify({strength:3});showToast("Sparred & won. +3 STR.","good")}else{modify({strength:1,hp:-10});showToast("Sparred & lost. +1 STR -10 HP.","bad")}useSlot()};
-  const doDrink=()=>{if(!canAct||cash<5)return;const g=sGain(1,"charm");modify({hp:-5,cash:-5,charm:g});useSlot();showToast(`Drink. +${g} CHM -5HP -$5.`,"event")};
-  const doGamble=()=>{if(!canAct||cash<10)return;const w=Math.min(wager,cash);const wc=Math.min(.7,.4+stats.intelligence*.003);if(Math.random()<wc){modify({cash:w});showToast(`Won $${w*2}!`,"good")}else{modify({cash:-w});showToast(`Lost $${w}.`,"bad")}useSlot()};
-  const doTalk=()=>{const a=NPCS.filter(n=>{if(stats.charm<n.reqChm)return false;if(n.reqKarma!==undefined){if(n.reqKarma>0&&stats.karma<n.reqKarma)return false;if(n.reqKarma<0&&stats.karma>n.reqKarma)return false}return true});if(!a.length){showToast("Nobody talks to you.","bad");return}const n=a[Math.floor(Math.random()*a.length)];showToast(`${n.name}: ${n.lines[0]}`,"event")};
-  const doWork=()=>{if(!canAct)return;const j=JOBS.find(j=>j.id===job);if(!j)return;const efx={cash:j.pay};if(j.karmaShift)efx.karma=j.karmaShift;modify(efx);useSlot();showToast(`Worked: ${j.name}. +$${j.pay}.`,"good")};
-  const switchJob=(id)=>{const j=JOBS.find(j=>j.id===id);if(!j||!canDoJob(j,stats))return;setJob(id);showToast(`Now: ${j.name}.`,"event")};
-  const buyItem=(item)=>{if(cash<item.cost)return;if(item.oneTime&&inv.includes(item.id))return;const efx={cash:-item.cost};if(item.effect)for(const[k,v]of Object.entries(item.effect)){efx[k]=(efx[k]||0)+v}modify(efx);if(item.oneTime||!item.consumable)setInv(p=>p.includes(item.id)?p:[...p,item.id]);showToast(`Bought ${item.name}.`,"good")};
+  const sGain=(base,stat)=>stats[stat]>50?Math.max(1,Math.floor(base*.6)):base+Math.floor(Math.random()*3);
 
-  // Keyboard
-  useEffect(()=>{
-    const d=e=>{keysRef.current[e.key.toLowerCase()]=true;if(e.key==='Escape')setEnteredBuilding(null)};
-    const u=e=>{keysRef.current[e.key.toLowerCase()]=false};
-    window.addEventListener('keydown',d);window.addEventListener('keyup',u);
-    return()=>{window.removeEventListener('keydown',d);window.removeEventListener('keyup',u)};
-  },[]);
+  const doSleep=()=>{if(!canAct||slept)return;modify({hp:20},"Slept. +20 HP. Dreams are free.");setSlept(true);useSlot();toast("Slept. +20 HP.","good")};
+  const doStudy=()=>{if(!canAct||cash<15)return;const g=sGain(2,"intelligence");modify({intelligence:g,cash:-15},`Studied. +${g} INT. -$15.`);useSlot();toast(`+${g} INT`,"good")};
+  const doTutor=()=>{if(!canAct||stats.intelligence<50)return;modify({cash:30,charm:1},"Tutored. +$30, +1 CHM.");useSlot();toast("+$30 +1 CHM","good")};
+  const doWorkout=()=>{if(!canAct)return;const bonus=hasItem("protein")?1:0;const g=sGain(2,"strength")+bonus;modify({strength:g},`Worked out. +${g} STR.`);useSlot();toast(`+${g} STR`,"good")};
+  const doTrainOthers=()=>{if(!canAct||stats.strength<40)return;modify({cash:20,charm:1},"Trained others. +$20, +1 CHM.");useSlot();toast("+$20 +1 CHM","good")};
+  const doDrink=()=>{if(!canAct||cash<10)return;const g=2+(hasItem("sunglasses")?1:0);modify({hp:-5,cash:-10,charm:g},`Drink. +${g} CHM, -5 HP, -$10.`);useSlot();toast(`+${g} CHM`,"good")};
+  const doGamble=()=>{
+    if(!canAct||cash<10)return;
+    const maxBet=hasItem("fake_id")?500:100;
+    const w=Math.min(Math.min(wager,cash),maxBet);
+    const winPct=Math.min(60,30+stats.intelligence*.3);
+    if(Math.random()*100<winPct){modify({cash:w},`Won $${w*2}! (${Math.round(winPct)}% odds)`);toast(`Won $${w*2}!`,"good")}
+    else{modify({cash:-w},`Lost $${w}. House always wins.`);toast(`Lost $${w}`,"bad")}
+    useSlot();
+  };
+  const doTalkNPC=npc=>{
+    const stage=npcProgress[npc.id]||0;
+    if(stage>=npc.stages.length)return;
+    const s=npc.stages[stage];
+    if(stats.charm<(s.reqChm||0))return;
+    if(s.reqKarma!==undefined&&stats.karma>s.reqKarma)return;
+    const text=typeof s.text==="function"?s.text():s.text;
+    setNpcChat({npc,stage:s,text,npcId:npc.id,stageIdx:stage});
+  };
+  const handleNpcChoice=(choice)=>{
+    const efx={};
+    if(choice.cash)efx.cash=choice.cash;
+    if(choice.karma)efx.karma=choice.karma;
+    if(choice.intelligence)efx.intelligence=choice.intelligence;
+    if(choice.charm)efx.charm=choice.charm;
+    if(choice.strength)efx.strength=choice.strength;
+    modify(efx,choice.reply);
+    toast(choice.reply,"good");
+    if(choice.effect?.unlockCorner)setFlags(p=>({...p,unlockCorner:true}));
+    setNpcProgress(p=>({...p,[npcChat.npcId]:(npcChat.stageIdx||0)+1}));
+    setNpcChat(null);
+  };
+  const advanceNpc=()=>{setNpcProgress(p=>({...p,[npcChat.npcId]:(npcChat.stageIdx||0)+1}));setNpcChat(null)};
 
-  // Canvas tap/click
-  const handleCanvasInput=useCallback((cx,cy)=>{
-    if(enteredRef.current||gameOver||activeEvent||dayEndPending)return;
-    const canvas=canvasRef.current;if(!canvas)return;
-    const rect=canvas.getBoundingClientRect();
-    const sx=W/rect.width,sy=H/rect.height;
-    const wx=(cx-rect.left)*sx,wy=(cy-rect.top)*sy;
-
-    // Check door tap
-    for(const b of BUILDINGS){
-      const d=b.door;
-      if(wx>=d.x-15&&wx<=d.x+d.w+15&&wy>=d.y-15&&wy<=d.y+d.h+15){
-        // Walk to door then enter
-        playerRef.current.targetX=d.x+d.w/2;
-        playerRef.current.targetY=d.y+d.h+15;
-        playerRef.current.enterOnArrival=b.id;
-        return;
-      }
-    }
-    // Walk to point
-    playerRef.current.targetX=wx;
-    playerRef.current.targetY=wy;
-    playerRef.current.enterOnArrival=null;
-  },[gameOver,activeEvent,dayEndPending]);
-
-  const onCanvasClick=useCallback(e=>{handleCanvasInput(e.clientX,e.clientY)},[handleCanvasInput]);
-  const onCanvasTouch=useCallback(e=>{e.preventDefault();const t=e.changedTouches[0];if(t)handleCanvasInput(t.clientX,t.clientY)},[handleCanvasInput]);
-
-  // Game loop
-  useEffect(()=>{
-    const canvas=canvasRef.current;if(!canvas)return;
-    const ctx=canvas.getContext('2d');
-
-    const loop=()=>{
-      frameRef.current++;
-      const p=playerRef.current;
-      const keys=keysRef.current;
-      const speed=hasSkateboard?4:2.8;
-      let moved=false;
-
-      if(!enteredRef.current&&!gameOver&&!activeEvent&&!dayEndPending){
-        // Keyboard
-        let kbMove=false;
-        if(keys.w||keys.arrowup){p.y=Math.max(30,p.y-speed);moved=kbMove=true}
-        if(keys.s||keys.arrowdown){p.y=Math.min(H-10,p.y+speed);moved=kbMove=true}
-        if(keys.a||keys.arrowleft){p.x=Math.max(15,p.x-speed);facingRef.current='left';moved=kbMove=true}
-        if(keys.d||keys.arrowright){p.x=Math.min(W-15,p.x+speed);facingRef.current='right';moved=kbMove=true}
-        if(kbMove){p.targetX=null;p.enterOnArrival=null}
-
-        // E to enter
-        if(keys.e&&nearRef.current&&!enteredRef.current){
-          setEnteredBuilding(nearRef.current);
-          keys.e=false;
-        }
-
-        // Tap target
-        if(p.targetX!=null&&p.targetY!=null){
-          const dx=p.targetX-p.x,dy=p.targetY-p.y,dist=Math.hypot(dx,dy);
-          if(dist>4){
-            p.x+=dx/dist*speed;p.y+=dy/dist*speed;
-            if(dx<-.5)facingRef.current='left';if(dx>.5)facingRef.current='right';
-            moved=true;
-          }else{
-            if(p.enterOnArrival){
-              setEnteredBuilding(p.enterOnArrival);
-              p.enterOnArrival=null;
-            }
-            p.targetX=null;p.targetY=null;
-          }
-        }
-        movingRef.current=moved;
-
-        // Near check
-        let found=null;
-        for(const b of BUILDINGS){
-          const dx=p.x-(b.door.x+b.door.w/2),dy=p.y-(b.door.y+b.door.h);
-          if(Math.hypot(dx,dy)<50){found=b.id;break}
-        }
-        setNearBuilding(found);
-      }
-
-      // Draw
-      const cw=canvas.parentElement.clientWidth;
-      const ch=canvas.parentElement.clientHeight;
-      canvas.width=cw;canvas.height=ch;
-      const scale=Math.min(cw/W,ch/H);
-      const ox=(cw-W*scale)/2,oy=(ch-H*scale)/2;
-      ctx.save();ctx.translate(ox,oy);ctx.scale(scale,scale);
-
-      const currentTod=['night','evening','afternoon','midday','morning'][slots]||'morning';
-      drawWorld(ctx,currentTod,BUILDINGS,p,facingRef.current,frameRef.current,movingRef.current,hasSkateboard,enteredRef.current,nearRef.current);
-
-      // Target indicator
-      if(p.targetX!=null&&!enteredRef.current){
-        ctx.fillStyle='rgba(78,204,163,.3)';
-        ctx.beginPath();ctx.arc(p.targetX,p.targetY,6+Math.sin(frameRef.current*.1)*2,0,Math.PI*2);ctx.fill();
-      }
-
-      ctx.restore();
-      animRef.current=requestAnimationFrame(loop);
-    };
-    animRef.current=requestAnimationFrame(loop);
-    return()=>{if(animRef.current)cancelAnimationFrame(animRef.current)};
-  },[hasSkateboard,gameOver,activeEvent,dayEndPending,slots]);
-
-  // Scoring
-  const getKarmaLabel=()=>{const k=stats.karma;if(k<=-50)return"Villain";if(k<=-10)return"Shady";if(k<=10)return"Neutral";if(k<=50)return"Decent";return"Saint"};
-  const calcScore=()=>{let s=(stats.strength+stats.intelligence+stats.charm)*10+cash+stats.karma*5+day*2;if(inv.includes("penthouse_key"))s+=500;if(inv.includes("skateboard"))s+=50;return s};
-
-  // ===== RENDER =====
-  if(gameOver){
-    const j=JOBS.find(j=>j.id===job);
-    return(<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100dvh',padding:16,background:'#111'}}>
-      <div className="modal" style={{maxWidth:400}}><div className="summ">
-        <h2>{gameOver==="death"?"You Didn't Make It":"Your Life Story"}</h2>
-        <div className="fs">Days: <strong>{day}</strong></div>
-        <div className="fs">Cash: <strong style={{color:'#4ecca3'}}>${cash}</strong></div>
-        <div className="fs">STR <strong style={{color:'#fc5185'}}>{stats.strength}</strong> INT <strong style={{color:'#6c63ff'}}>{stats.intelligence}</strong> CHM <strong style={{color:'#f9a826'}}>{stats.charm}</strong></div>
-        <div className="fs">Karma: <strong style={{color:'#a8e6cf'}}>{stats.karma}</strong></div>
-        <div className="al">{getKarmaLabel()}</div>
-        <div className="fs">Job: {j?.name}</div>
-        <div className="fs">Items: {inv.length?inv.map(id=>ITEMS.find(i=>i.id===id)?.name).join(', '):'None'}</div>
-        <div className="sc">Score: {calcScore()}</div>
-        <button className="mbtn" onClick={()=>window.location.reload()} style={{textAlign:'center',marginTop:8}}>Play Again</button>
-      </div></div>
-    </div>);
-  }
-
-  const hpColor=hp>60?'#4ecca3':hp>30?'#f9a826':'#e94560';
-  const curJob=JOBS.find(j=>j.id===job);
-
-  // Building action sheet
-  const renderBSheet=()=>{
-    if(!enteredBuilding)return null;
-    const b=BUILDINGS.find(b=>b.id===enteredBuilding);
-    const close=()=>setEnteredBuilding(null);
-
-    let content=null;
-    switch(enteredBuilding){
-      case"apartment":content=(<>
-        <button className="act-btn" onClick={doSleep} disabled={!canAct||slept}><div className="ab-name">{slept?"Already Slept":"Sleep"}</div><div className="ab-sub">+20 HP | 1 slot</div></button>
-        <div style={{padding:'8px 12px',fontSize:'.65em',color:'#555'}}>Items: {inv.length?inv.map(id=><span key={id} style={{background:'#0f3460',padding:'2px 6px',borderRadius:8,margin:2,display:'inline-block'}}>{ITEMS.find(i=>i.id===id)?.name}</span>):'Empty'}</div>
-      </>);break;
-      case"university":content=(<>
-        <button className="act-btn" onClick={doStudy} disabled={!canAct||cash<10}><div className="ab-name">Study</div><div className="ab-sub">+2-4 INT | 1 slot</div><div className="ab-cost">-$10</div>{cash<10&&<div className="ab-req">Broke.</div>}</button>
-      </>);break;
-      case"gym":content=(<>
-        <button className="act-btn" onClick={doWorkout} disabled={!canAct}><div className="ab-name">Work Out</div><div className="ab-sub">+2-4 STR | 1 slot | Free</div></button>
-        <button className="act-btn" onClick={doSpar} disabled={!canAct||stats.strength<25}><div className="ab-name">Spar</div><div className="ab-sub">50/50: +3 STR or -10 HP +1 STR</div>{stats.strength<25&&<div className="ab-req">STR 25 req</div>}</button>
-      </>);break;
-      case"bar":content=(<>
-        <button className="act-btn" onClick={doDrink} disabled={!canAct||cash<5}><div className="ab-name">Drink</div><div className="ab-sub">+CHM -5HP | 1 slot</div><div className="ab-cost">-$5</div></button>
-        <button className="act-btn" onClick={doGamble} disabled={!canAct||cash<10}><div className="ab-name">Gamble ${Math.min(wager,cash)}</div><div className="ab-sub">Win: {Math.min(70,Math.floor(40+stats.intelligence*.3))}% | 1 slot</div>
-          <div className="wager-row">{[10,25,50,100].map(w=><button key={w} className={`wager-btn${wager===w?' active':''}`} onClick={e=>{e.stopPropagation();setWager(w)}}>${w}</button>)}<button className={`wager-btn${wager>=cash?' active':''}`} onClick={e=>{e.stopPropagation();setWager(cash)}}>All</button></div>
-        </button>
-        <button className="act-btn" onClick={doTalk}><div className="ab-name">Talk to Someone</div><div className="ab-sub">Free (no slot)</div></button>
-      </>);break;
-      case"workplace":content=(<>
-        <button className="act-btn" onClick={doWork} disabled={!canAct}><div className="ab-name">Work: {curJob?.name}</div><div className="ab-sub">{curJob?.desc}</div><div className="ab-cost">+${curJob?.pay}</div></button>
-        <div style={{padding:'4px 12px',fontSize:'.65em',color:'#888'}}>Switch job (free):</div>
-        {JOBS.map(j=>{const ok=canDoJob(j,stats);const cur=job===j.id;const req=Object.entries(j.req).map(([k,v])=>k==='karmaCap'?`K<=${v}`:k==='karmaFloor'?`K>=${v}`:`${k.slice(0,3).toUpperCase()}${v}`).join(' ')||'-';
-          return<div key={j.id} className={`job-row${ok?'':' locked'}${cur?' current':''}`} onClick={()=>ok&&switchJob(j.id)}><span className="jn">{j.name}{cur?' *':''}</span><span className="jr">{req}</span><span className="jp">${j.pay}</span></div>
-        })}
-      </>);break;
-      case"store":content=(<>
-        {ITEMS.map(item=>{const owned=item.oneTime&&inv.includes(item.id);const ok=cash>=item.cost&&!owned;
-          return<div key={item.id} className={`shop-row${ok?'':' dis'}`} onClick={()=>ok&&buyItem(item)}><div><div className="sn">{item.name}{owned?' (Owned)':''}</div><div className="sd">{item.desc}</div></div><div className="sp">{owned?'--':`$${item.cost}`}</div></div>
-        })}
-        <div style={{fontSize:'.6em',color:'#444',padding:'6px 12px'}}>Shopping = free action.</div>
-      </>);break;
-    }
-
-    return(<>
-      <div className="bsheet-overlay" onClick={close}/>
-      <div className="bsheet">
-        <div className="bsheet-handle"/>
-        <button className="bsheet-close" onClick={close}>x</button>
-        <h3>{b?.label}</h3>
-        <div className="bsheet-actions">
-          {content}
-          {slots>0&&slots<4&&canAct&&<button className="act-btn" onClick={()=>{close();setTimeout(endDay,100)}} style={{background:'transparent',border:'1px solid #f9a826',color:'#f9a826'}}><div className="ab-name">End Day Early</div></button>}
-        </div>
-      </div>
-    </>);
+  const doWork=()=>{if(!canAct)return;const j=JOBS.find(j=>j.id===job);if(!j)return;const efx={cash:j.pay};if(j.karmaShift)efx.karma=j.karmaShift;modify(efx,`Worked as ${j.name}. +$${j.pay}.`);useSlot();toast(`+$${j.pay}`,"good")};
+  const switchJob=id=>{const j=JOBS.find(j=>j.id===id);if(!j||!jobAvail(j,stats))return;setJob(id);toast(`Now: ${j.name}`,"info")};
+  const buyItem=item=>{
+    if(cash<item.cost)return;
+    if(item.oneTime&&inv.includes(item.id))return;
+    const efx={cash:-item.cost};
+    if(item.effect)for(const[k,v]of Object.entries(item.effect))efx[k]=(efx[k]||0)+v;
+    modify(efx,`Bought ${item.name}.`);
+    if(item.consumable){setInvQty(p=>({...p,[item.id]:(p[item.id]||0)+1}))}
+    else if(!inv.includes(item.id)){setInv(p=>[...p,item.id])}
+    toast(`Bought ${item.name}`,"good");
+  };
+  const useConsumable=item=>{
+    if(!invQty[item.id])return;
+    const efx={};if(item.effect)for(const[k,v]of Object.entries(item.effect))efx[k]=(efx[k]||0)+v;
+    modify(efx,`Used ${item.name}.`);
+    setInvQty(p=>{const n={...p};n[item.id]--;if(n[item.id]<=0)delete n[item.id];return n});
+    toast(`Used ${item.name}`,"good");
   };
 
-  return(
-    <div style={{display:'flex',flexDirection:'column',height:'100dvh'}}>
-      {/* HUD */}
-      <div className="hud">
-        <div className="hud-day">DAY {day}</div>
-        <div className="hp-wrap">
-          <span className="hp-icon">&hearts;</span>
-          <div className="hp-bar-out"><div className="hp-bar-in" style={{width:`${hp}%`,background:hpColor}}/><div className="hp-text">{hp}/100</div></div>
+  // Corner actions
+  const doCornerJob=()=>{if(!canAct)return;const risk=Math.random();if(risk<.3){modify({hp:-15,cash:80},"Shady job. Got roughed up. +$80 -15 HP.");toast("Risky but profitable","bad")}else{modify({cash:100,karma:-2},"Shady job. Clean run. +$100 -2 Karma.");toast("+$100","good")}useSlot()};
+  const doCornerFence=()=>{if(!canAct||cash<20)return;modify({cash:40,karma:-1},"Bought & flipped stolen goods. +$40 -1 K.");useSlot();toast("+$40","good")};
+
+  // Scoring
+  const getKarmaLabel=()=>{const k=stats.karma;if(k>=40)return"Saint";if(k>=15)return"Good Citizen";if(k>=-15)return"Neutral";if(k>=-40)return"Shady";return"Crime Lord"};
+  const calcScore=()=>{let s=(stats.strength+stats.intelligence+stats.charm)*10+cash+day*2;s+=stats.karma>0?stats.karma*8:stats.karma*3;const jt=JOBS.findIndex(j=>j.id===job);s+=jt*50;Object.values(npcProgress).forEach(v=>{if(v>=3)s+=100});if(inv.includes("penthouse_key"))s+=500;if(inv.includes("skateboard"))s+=50;return Math.max(0,s)};
+  const genHeadline=()=>{
+    const jn=JOBS.find(j=>j.id===job)?.name||"Nobody";
+    const kl=getKarmaLabel();
+    if(kl==="Saint")return`LOCAL ${jn.toUpperCase()} DONATES FORTUNE TO CHARITY, CREDITS "JUST BEING A DECENT PERSON"`;
+    if(kl==="Crime Lord")return`${jn.toUpperCase()} ARRESTED WITH $${cash} IN APARTMENT, NEIGHBORS "NOT SURPRISED"`;
+    if(stats.intelligence>80)return`GENIUS ${jn.toUpperCase()} PUBLISHES MEMOIR: "IT STARTED WITH A $8 PANHANDLING GIG"`;
+    if(stats.strength>80)return`FORMER ${jn.toUpperCase()} WINS ARM WRESTLING CHAMPIONSHIP, TEARS TROPHY IN HALF`;
+    if(cash>3000)return`SELF-MADE MILLIONAIRE (ALMOST): ${jn.toUpperCase()} RETIRES AT DAY ${day}`;
+    return`${jn.toUpperCase()} FOUND LIVING QUIETLY, DESCRIBES LIFE AS "FINE, I GUESS"`;
+  };
+
+  // ==================== RENDER ====================
+  if(gameOver){
+    const jObj=JOBS.find(j=>j.id===job);
+    return(<div className="modal-overlay"><div className="modal" style={{maxWidth:500}}>
+      <div className="summ">
+        <h2>{gameOver==="death"?"You Didn't Make It":gameOver==="eviction"?"Evicted":"Your Life Story"}</h2>
+        <p style={{color:'#888'}}>{gameOver==="death"?"Your body gave out.":gameOver==="eviction"?"Two missed rents. You're on the street.":"100 days. Here's what you did."}</p>
+        <div className="headline">"{genHeadline()}"</div>
+        <div className="fs">Days: <strong>{day}</strong></div>
+        <div className="fs">Cash: <strong style={{color:'var(--green)'}}>${cash}</strong></div>
+        <div className="fs">STR <strong style={{color:'#fc5185'}}>{stats.strength}</strong> | INT <strong style={{color:'#6c63ff'}}>{stats.intelligence}</strong> | CHM <strong style={{color:'#f9a826'}}>{stats.charm}</strong></div>
+        <div className="fs">Karma: <strong style={{color:'#a8e6cf'}}>{stats.karma}</strong> ({getKarmaLabel()})</div>
+        <div className="fs">Job: {jObj?.name} (${jObj?.pay}/slot)</div>
+        <div className="fs">Items: {inv.length?inv.map(id=>ITEMS.find(i=>i.id===id)?.icon||'?').join(' '):'None'}</div>
+        <div className="fs">NPCs completed: {Object.values(npcProgress).filter(v=>v>=3).length}/{NPCS.length}</div>
+        <div className="score-big">Score: {calcScore()}</div>
+        <button className="modal-btn" onClick={()=>window.location.reload()} style={{textAlign:'center',marginTop:8}}>Play Again</button>
+      </div>
+    </div></div>);
+  }
+
+  const hpColor=hp>60?'var(--green)':hp>30?'var(--gold)':'var(--red)';
+  const skyBg=energy>=3?'linear-gradient(180deg,#1a2a4a,#2a3a5a)':energy>=2?'linear-gradient(180deg,#141a30,#1a2040)':energy>=1?'linear-gradient(180deg,#0e1220,#121828)':'linear-gradient(180deg,#080c18,#0a0e1a)';
+  const starsVisible=energy<=1;
+  const rentDays=7-(day%7===0?7:day%7);
+
+  // Location config
+  const locs=[
+    {id:"apartment",icon:"\uD83C\uDFE0",label:"Apartment",sub:"Rest & Inventory",color:"#4a6a8a",border:"#3a5a7a"},
+    {id:"university",icon:"\uD83D\uDCDA",label:"University",sub:"Study & Learn",color:"#8a7a3a",border:"#6a5a2a"},
+    {id:"gym",icon:"\uD83D\uDCAA",label:"Gym",sub:"Train & Spar",color:"#8a3a2a",border:"#6a2a1a"},
+    {id:"bar",icon:"\uD83C\uDF7A",label:"Bar",sub:"Social & Gamble",color:"#5a2a6a",border:"#4a1a5a"},
+    {id:"workplace",icon:"\uD83D\uDCBC",label:"Work",sub:JOBS.find(j=>j.id===job)?.name,color:"#2a5a3a",border:"#1a4a2a"},
+    {id:"store",icon:"\uD83D\uDED2",label:"Store",sub:"Buy Items",color:"#6a6a2a",border:"#5a5a1a"},
+    ...(cornerUnlocked?[{id:"corner",icon:"\uD83D\uDD73",label:"The Corner",sub:"Shady Deals",color:"#4a1a1a",border:"#3a0a0a"}]:[]),
+  ];
+
+  const renderStatFloat=(stat)=>{
+    const f=floats[stat];if(!f)return null;
+    return<span className={`float-text ${f.dir}`}>{f.dir==='up'?'+':'-'}{f.amount}</span>;
+  };
+
+  // Render location content
+  const renderLoc=()=>{
+    if(!loc)return null;
+    const curJob=JOBS.find(j=>j.id===job);
+    const locData=locs.find(l=>l.id===loc);
+    const borderColor=locData?.border||'var(--border)';
+
+    const header=(title,desc)=>(<div className="ap-header"><div><div className="ap-title" style={{color:locData?.color}}>{locData?.icon} {title}</div></div><button className="ap-close" onClick={()=>setLoc(null)}>Back</button></div>);
+
+    switch(loc){
+      case"apartment":return(<div className="action-panel" style={{borderColor}}>
+        {header("Apartment","It's small. It's yours.")}
+        <div className="ap-desc">It's small. It smells. At least the rent is only $50/week.</div>
+        {rentDays<=2&&<div className="rent-warn">Rent due in {rentDays} day{rentDays!==1?'s':''}! Need $50.{missedRent>0?' WARNING: One more miss = eviction!':''}</div>}
+        <button className="act-btn" onClick={doSleep} disabled={!canAct||slept}><div className="ab-name">{slept?"Already Slept":"Sleep"}</div><div className="ab-sub">+20 HP | 1 energy</div></button>
+        {Object.entries(invQty).map(([id,qty])=>{const item=ITEMS.find(i=>i.id===id);if(!item)return null;return<button key={id} className="act-btn" onClick={()=>useConsumable(item)}><div className="ab-name">Use {item.icon} {item.name} (x{qty})</div><div className="ab-sub">{item.desc}</div></button>})}
+        <div style={{marginTop:12,fontSize:'clamp(.6em,1vw,.75em)',color:'var(--text2)'}}>
+          <div>STR {stats.strength} | INT {stats.intelligence} | CHM {stats.charm} | Karma {stats.karma}</div>
+          <div className="inv-bar">{inv.map(id=>{const it=ITEMS.find(i=>i.id===id);return<span key={id} className="inv-item">{it?.icon} {it?.name}</span>})}{inv.length===0&&<span style={{color:'#444'}}>No items</span>}</div>
         </div>
-        <div className="hud-cash">${cash}</div>
-        <div className="hud-stat"><span className="hl">S</span><span className="hv hs-str">{stats.strength}</span></div>
-        <div className="hud-stat"><span className="hl">I</span><span className="hv hs-int">{stats.intelligence}</span></div>
-        <div className="hud-stat"><span className="hl">C</span><span className="hv hs-chm">{stats.charm}</span></div>
-        <div className="hud-stat"><span className="hl">K</span><span className="hv hs-k">{stats.karma}</span></div>
-        <div className="hud-slots">{[0,1,2,3].map(i=><div key={i} className={`hud-pip ${i<(4-slots)?'u':'f'}`}/>)}</div>
-      </div>
+      </div>);
 
-      {/* CANVAS */}
-      <div className="canvas-wrap">
-        <canvas ref={canvasRef} onClick={onCanvasClick} onTouchStart={onCanvasTouch}/>
+      case"university":return(<div className="action-panel" style={{borderColor}}>
+        {header("University","Hallowed halls of learning and debt.")}
+        <div className="ap-desc">Knowledge is power. Power is expensive.</div>
+        <button className="act-btn" onClick={doStudy} disabled={!canAct||cash<15}><div className="ab-name">Study</div><div className="ab-sub">+2-4 INT (diminishes past 50) | 1 energy</div><div className="ab-cost">-$15</div>{cash<15&&<div className="ab-req">Can't afford tuition.</div>}</button>
+        {stats.intelligence>=50&&<button className="act-btn" onClick={doTutor} disabled={!canAct}><div className="ab-name">Tutor Students</div><div className="ab-sub">+$30, +1 CHM | 1 energy</div><div className="ab-cost">+$30</div></button>}
+      </div>);
 
-        {/* Toast */}
-        {toast&&<div className={`log-toast ${toast.type}`}>{toast.msg}</div>}
+      case"gym":return(<div className="action-panel" style={{borderColor}}>
+        {header("Gym","Smells like ambition and floor cleaner.")}
+        <div className="ap-desc">Pain is weakness leaving the body. Supposedly.</div>
+        <button className="act-btn" onClick={doWorkout} disabled={!canAct}><div className="ab-name">Work Out</div><div className="ab-sub">+2-4 STR{hasItem("protein")?' (+1 protein bonus)':''} | 1 energy</div><div className="ab-cost">Free</div></button>
+        {stats.strength>=40&&<button className="act-btn" onClick={doTrainOthers} disabled={!canAct}><div className="ab-name">Train Others</div><div className="ab-sub">+$20, +1 CHM | 1 energy</div><div className="ab-cost">+$20</div></button>}
+      </div>);
 
-        {/* End day float */}
-        {!enteredBuilding&&slots>0&&slots<4&&canAct&&(
-          <button className="end-day-float" onClick={endDay}>End Day ({slots} slots left)</button>
-        )}
+      case"bar":return(<div className="action-panel" style={{borderColor}}>
+        {header("The Rusty Nail","Neon lights. Bad decisions.")}
+        <div className="ap-desc">Every town has one. This one has sticky floors.</div>
+        <button className="act-btn" onClick={doDrink} disabled={!canAct||cash<10}><div className="ab-name">Drink</div><div className="ab-sub">+2 CHM{hasItem("sunglasses")?' (+1 shades bonus)':''}, -5 HP | 1 energy</div><div className="ab-cost">-$10</div></button>
+        <button className="act-btn" onClick={doGamble} disabled={!canAct||cash<10}><div className="ab-name">Gamble ${Math.min(wager,cash)}</div><div className="ab-sub">Win: {Math.min(60,Math.round(30+stats.intelligence*.3))}% | 2x payout | 1 energy</div>
+          <div className="wager-row">{[10,25,50,100,...(hasItem("fake_id")?[250,500]:[])].map(w=><button key={w}className={`wager-btn${wager===w?' active':''}`}onClick={e=>{e.stopPropagation();setWager(w)}}>${w}</button>)}</div>
+        </button>
+        <div style={{marginTop:10,fontSize:'clamp(.65em,1vw,.78em)',color:'var(--text2)'}}>NPCs:</div>
+        {NPCS.filter(n=>!n.stages[0].reqKarma||stats.karma<=n.stages[0].reqKarma).map(npc=>{
+          const stage=npcProgress[npc.id]||0;
+          const done=stage>=npc.stages.length;
+          const s=npc.stages[Math.min(stage,npc.stages.length-1)];
+          const locked=stats.charm<(s?.reqChm||0)||(s?.reqKarma!==undefined&&stats.karma>s.reqKarma);
+          return<button key={npc.id}className="act-btn"onClick={()=>doTalkNPC(npc)}disabled={done||locked}><div className="ab-name">{npc.name}{done?' (done)':''}</div><div className="ab-sub">{done?'Story complete':locked?`Requires CHM ${s.reqChm}${s.reqKarma!==undefined?`, Karma ${s.reqKarma}`:''}`:'Available'}</div></button>;
+        })}
+      </div>);
 
-        {/* Building action sheet */}
-        {renderBSheet()}
-      </div>
+      case"workplace":return(<div className="action-panel" style={{borderColor}}>
+        {header("Workplace","Time to earn breadcrumbs.")}
+        <button className="act-btn" onClick={doWork} disabled={!canAct}><div className="ab-name">Work: {curJob?.name}</div><div className="ab-sub">{curJob?.pay&&`+$${curJob.pay}/slot`}{curJob?.karmaShift?` | ${curJob.karmaShift} Karma`:''}</div><div className="ab-cost">+${curJob?.pay}</div></button>
+        <div style={{marginTop:10,fontSize:'clamp(.62em,1vw,.72em)',color:'var(--text2)',marginBottom:6}}>Switch job (free):</div>
+        {JOBS.map(j=>{const ok=jobAvail(j,stats);const cur=job===j.id;const req=Object.entries(j.req).map(([k,v])=>k==='karmaCap'?`K<=${v}`:`${k.slice(0,3).toUpperCase()} ${v}`).join(', ')||'None';
+          return<div key={j.id}className={`job-row${ok?'':' locked'}${cur?' current':''}`}onClick={()=>ok&&switchJob(j.id)}><span className="jr-name">{j.name}{cur?' *':''}</span><span className="jr-req">{req}</span><span className="jr-pay">${j.pay}</span></div>;
+        })}
+      </div>);
 
-      {/* Event modal */}
-      {activeEvent&&(
-        <div className="modal-overlay"><div className="modal">
-          <h2>{activeEvent.title}</h2>
-          <p>{activeEvent.desc}</p>
-          {activeEvent.choices.map((c,i)=>{
-            if(c.blockItem&&inv.includes(c.blockItem))return<div key={i} className="mbtn" style={{opacity:.4,pointerEvents:'none'}}>{c.label}<br/><span style={{color:'#888',fontSize:'.85em'}}>Blocked by {ITEMS.find(it=>it.id===c.blockItem)?.name}</span></div>;
-            const ok=canChoose(c);
-            return<button key={i} className="mbtn" disabled={!ok} onClick={()=>handleEventChoice(c)}>{c.label}{!ok?' (Locked)':''}</button>
+      case"store":return(<div className="action-panel" style={{borderColor}}>
+        {header("Quick-E-Mart","If we don't have it, you don't need it.")}
+        <div className="shop-grid">
+          {ITEMS.filter(i=>!i.corner).map(item=>{const owned=item.oneTime&&inv.includes(item.id);const ok=cash>=item.cost&&!owned;
+            return<div key={item.id}className={`shop-card${ok?'':' dis'}`}onClick={()=>ok&&buyItem(item)}><div className="sc-icon">{item.icon}</div><div className="sc-name">{item.name}{owned?' (Owned)':''}</div><div className="sc-desc">{item.desc}</div><div className="sc-price">{owned?'--':`$${item.cost}`}</div></div>;
           })}
-        </div></div>
+        </div>
+        <div style={{fontSize:'clamp(.55em,.9vw,.65em)',color:'#444',marginTop:8}}>Shopping doesn't cost energy.</div>
+      </div>);
+
+      case"corner":return(<div className="action-panel" style={{borderColor}}>
+        {header("The Corner","You shouldn't be here.")}
+        <div className="ap-desc corner-glow">Dark alley. Darker deals. Don't make eye contact.</div>
+        <button className="act-btn" onClick={doCornerJob} disabled={!canAct}><div className="ab-name">Shady Job</div><div className="ab-sub">$80-100 | 30% chance -15 HP | -2 Karma | 1 energy</div></button>
+        <button className="act-btn" onClick={doCornerFence} disabled={!canAct||cash<20}><div className="ab-name">Fence Goods</div><div className="ab-sub">Buy $20, sell $60 | -1 Karma | 1 energy</div><div className="ab-cost">-$20</div></button>
+        {ITEMS.filter(i=>i.corner).map(item=>{const owned=item.oneTime&&inv.includes(item.id);const ok=cash>=item.cost&&!owned;
+          return<div key={item.id}className={`shop-card${ok?'':' dis'}`}onClick={()=>ok&&buyItem(item)}style={{marginTop:8}}><div className="sc-icon">{item.icon}</div><div className="sc-name">{item.name}{owned?' (Owned)':''}</div><div className="sc-desc">{item.desc}</div><div className="sc-price">{owned?'--':`$${item.cost}`}</div></div>;
+        })}
+      </div>);
+    }
+  };
+
+  return(<div style={{display:'flex',flexDirection:'column',minHeight:'100vh',minHeight:'100dvh'}}>
+    {/* Skyline */}
+    <div className="skyline"><div className="sky-bg" style={{background:skyBg}}>
+      <div className={`sky-stars${starsVisible?' visible':''}`}>{Array.from({length:20}).map((_,i)=><div key={i}className="sky-star"style={{left:`${(i*17.3)%100}%`,top:`${(i*13.7)%80}%`,opacity:Math.random()*.5+.3}}/>)}</div>
+      <div className="sky-buildings">{[30,50,70,40,60,35,55,45].map((h,i)=><div key={i}className="sky-bldg"style={{width:clamp(8,15),height:`${h}%`}}/>)}</div>
+    </div></div>
+
+    {/* Top bar */}
+    <div className="topbar">
+      <div className="tb-day">DAY {day}</div>
+      <div className="tb-hp-wrap"><span className="tb-hp-icon">&hearts;</span><div className="tb-hp-bar"><div className="tb-hp-fill"style={{width:`${hp}%`,background:hpColor}}/><div className="tb-hp-text">{hp}</div></div></div>
+      <div className="tb-energy">{Array.from({length:4}).map((_,i)=><div key={i}className={`tb-pip ${i<energy?'full':'empty'}`}/>)}</div>
+      <div className="tb-cash">${cash}</div>
+      {[["S","strength","tsv-s"],["I","intelligence","tsv-i"],["C","charm","tsv-c"],["K","karma","tsv-k"]].map(([l,k,c])=>
+        <div key={k}className={`tb-stat${flashes[k]?' flash-'+flashes[k]:''}`}><span className="tsl">{l}</span><span className={`tsv ${c}`}>{stats[k]}</span>{renderStatFloat(k)}</div>
       )}
     </div>
-  );
+
+    {/* Main */}
+    <div className="main-area">
+      {/* Rent warning */}
+      {rentDays<=2&&!loc&&<div className="rent-warn">Rent due in {rentDays} day{rentDays!==1?'s':''}! Need $50. Current: ${cash}{missedRent>0?' | WARNING: Next miss = EVICTION':''}</div>}
+
+      {/* Location grid */}
+      {!loc&&<div className="loc-grid">{locs.map(l=>(
+        <div key={l.id}className={`loc-card${loc===l.id?' active':''}`}style={{borderColor:l.border,'--glow':l.color}}onClick={()=>setLoc(l.id)}>
+          <span className="loc-icon">{l.icon}</span>
+          <div className="loc-label"style={{color:l.color}}>{l.label}</div>
+          <div className="loc-sub">{l.sub}</div>
+        </div>
+      ))}</div>}
+
+      {/* Location content */}
+      {renderLoc()}
+
+      {/* End day button */}
+      {!loc&&energy>0&&energy<4&&canAct&&<button className="act-btn" onClick={endDay} style={{border:'1px solid var(--gold)',color:'var(--gold)',background:'transparent',textAlign:'center',maxWidth:300,margin:'12px auto',display:'block'}}><div className="ab-name">End Day Early ({energy} energy left)</div></button>}
+    </div>
+
+    {/* Toasts */}
+    <div className="toast-container">{toasts.map(t=><div key={t.id}className={`toast ${t.type}`}>{t.msg}</div>)}</div>
+
+    {/* Day transition */}
+    {showDayTrans&&<div className="day-trans"><span>Day {day+1}</span></div>}
+
+    {/* Day summary */}
+    {showSummary&&<div className="modal-overlay"><div className="modal">
+      <h2>Day {day} Summary</h2>
+      {dayLog.length?dayLog.map((l,i)=><p key={i}style={{fontSize:'clamp(.65em,1.05vw,.78em)'}}>{l}</p>):<p>Nothing happened. Quiet day.</p>}
+      <hr style={{border:'none',borderTop:'1px solid var(--border)',margin:'10px 0'}}/>
+      <p style={{color:'var(--text2)',fontSize:'clamp(.6em,1vw,.72em)'}}>HP: {hp}/100 | Cash: ${cash} | Energy used: {4-energy}/{maxEnergy}</p>
+      <button className="modal-btn" onClick={nextDay} style={{textAlign:'center',marginTop:8}}>{day>=100?"See Final Results":"Next Day"}</button>
+    </div></div>}
+
+    {/* Random event */}
+    {activeEvent&&<div className="modal-overlay"><div className="modal">
+      <h2>{activeEvent.title}</h2>
+      <p>{activeEvent.desc}</p>
+      {activeEvent.choices.map((c,i)=>{
+        if(c.blockItem&&inv.includes(c.blockItem))return<div key={i}className="modal-btn"style={{opacity:.4,pointerEvents:'none'}}>{c.label} (Blocked)</div>;
+        const ok=canChoose(c);
+        return<button key={i}className="modal-btn"disabled={!ok}onClick={()=>handleEventChoice(c)}>{c.label}{!ok?' (Locked)':''}</button>;
+      })}
+    </div></div>}
+
+    {/* NPC chat */}
+    {npcChat&&<div className="modal-overlay"><div className="modal">
+      <div className="npc-bubble"><div className="npc-name">{npcChat.npc.name}</div><div className="npc-text">{npcChat.text}</div></div>
+      {npcChat.stage.choices?<div className="npc-choices">{npcChat.stage.choices.map((c,i)=>
+        <button key={i}className="modal-btn"onClick={()=>handleNpcChoice(c)}>{c.label}</button>
+      )}</div>:<button className="modal-btn"onClick={advanceNpc}style={{textAlign:'center'}}>Continue</button>}
+    </div></div>}
+  </div>);
 }
+
+function clamp(min,max){return`clamp(${min}px,${max/10}vw,${max}px)`}
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
